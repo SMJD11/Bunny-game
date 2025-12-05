@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bunny vs Bobcat: Remastered</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Fredoka', sans-serif;
+            background-color: #87CEEB;
+            user-select: none;
+            touch-action: none;
+        }
+
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            color: white;
+            text-shadow: 2px 2px 0px #000;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: 1px;
+            color: #fff;
+        }
+
+        #score {
+            font-size: 36px;
+            font-weight: 600;
+            color: #FFA500;
+            margin-top: 5px;
+        }
+
+        #stamina-container {
+            width: 200px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+            border: 2px solid white;
+        }
+
+        #stamina-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #f1c40f, #e67e22);
+            transform-origin: left;
+            transition: transform 0.1s;
+        }
+
+        /* Lobby */
+        #lobby-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #87CEEB 0%, #4facfe 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: opacity 0.5s;
+        }
+
+        .lobby-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            backdrop-filter: blur(10px);
+        }
+
+        .input-group {
+            margin: 25px 0;
+        }
+
+        input {
+            padding: 15px;
+            font-size: 28px;
+            border: 3px solid #eee;
+            border-radius: 15px;
+            width: 180px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: bold;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: #4facfe;
+        }
+
+        .role-btn {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            margin: 12px 0;
+            font-size: 20px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Fredoka', sans-serif;
+            transition: transform 0.1s, filter 0.2s;
+            color: white;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .role-btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-host {
+            background: linear-gradient(45deg, #FF9966, #FF5E62);
+            box-shadow: 0 6px 0 #D35400;
+        }
+
+        .btn-host:active {
+            box-shadow: 0 2px 0 #D35400;
+            transform: translateY(4px);
+        }
+
+        .btn-join {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            box-shadow: 0 6px 0 #2980B9;
+        }
+
+        .btn-join:active {
+            box-shadow: 0 2px 0 #2980B9;
+            transform: translateY(4px);
+        }
+
+        .btn-disabled {
+            background: #bdc3c7;
+            box-shadow: none;
+            cursor: not-allowed;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        #host-id-display {
+            font-size: 42px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 15px 0;
+            padding: 15px;
+            background: #ecf0f1;
+            border-radius: 15px;
+            letter-spacing: 6px;
+            display: none;
+            border: 2px dashed #bdc3c7;
+        }
+
+        #status-msg {
+            margin-top: 25px;
+            color: #7f8c8d;
+            font-weight: 600;
+        }
+
+        .modal {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.98);
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+            pointer-events: auto;
+            z-index: 20;
+            min-width: 300px;
+        }
+
+        .modal h2 {
+            font-size: 40px;
+            margin: 0 0 10px 0;
+        }
+
+        .modal p {
+            font-size: 20px;
+            color: #555;
+            margin-bottom: 30px;
+        }
+
+        #danger-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            box-shadow: inset 0 0 0 0 rgba(255, 0, 0, 0);
+            transition: box-shadow 0.1s;
+            z-index: 5;
+            mix-blend-mode: multiply;
+        }
+
+        /* Joystick Controls */
+        #mobile-controls {
+            display: none;
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 140px;
+            height: 140px;
+            z-index: 50;
+        }
+
+        #joystick-base {
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            position: relative;
+            backdrop-filter: blur(4px);
+        }
+
+        #joystick-knob {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        #sprint-btn {
+            display: none;
+            /* Mobile only */
+            position: absolute;
+            bottom: 60px;
+            right: 40px;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            z-index: 50;
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        #sprint-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Controls Hint */
+        #controls-hint {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="lobby-screen">
+        <div class="lobby-card">
+            <h2 style="margin-top:0; color: #333;">🐰 Bunny vs Bobcat 🐱</h2>
+            <p style="color:#666; margin-bottom: 20px;">Peer-to-Peer Chase Game</p>
+
+            <div id="setup-phase">
+                <button id="btn-host" class="role-btn btn-host btn-disabled" onclick="hostGame()">
+                    Host as Bunny
+                </button>
+                <div style="margin: 15px 0; font-weight: bold; color: #aaa;">- OR -</div>
+                <div class="input-group">
+                    <input type="text" id="join-code" placeholder="CODE" maxlength="4">
+                </div>
+                <button id="btn-join" class="role-btn btn-join btn-disabled" onclick="joinGame()">
+                    Join as Bobcat
+                </button>
+                <button id="btn-solo" class="role-btn btn-host" style="background: #95a5a6; margin-top: 20px;"
+                    onclick="playSolo()">
+                    Play Solo (Offline)
+                </button>
+            </div>
+
+            <div id="waiting-phase" style="display:none;">
+                <p>Share this code with your friend:</p>
+                <div id="host-id-display">...</div>
+                <p class="pulse">Waiting for connection...</p>
+            </div>
+
+            <div id="status-msg">Loading engine...</div>
+        </div>
+    </div>
+
+    <div id="danger-overlay"></div>
+
+    <div id="ui-container">
+        <div>
+            <h1>YOU: <span id="player-role-display">...</span></h1>
+            <div id="score">Carrots: 0 / 10</div>
+            <div id="stamina-container">
+                <div id="stamina-bar"></div>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <h1 id="connection-indicator" style="font-size: 16px; opacity: 0.8;">OFFLINE</h1>
+        </div>
+    </div>
+
+    <div id="mobile-controls" style="display:none;">
+        <div id="joystick-base">
+            <div id="joystick-knob"></div>
+        </div>
+    </div>
+    <div id="sprint-btn" style="display:none;">SPRINT</div>
+
+    <div id="controls-hint">
+        WASD to Move • SHIFT to Sprint
+    </div>
+
+    <div id="win-screen" class="modal">
+        <h2 style="color: #2ecc71;">Bunny Wins! 🥕</h2>
+        <p>All carrots collected and the family is fed!</p>
+        <button class="role-btn btn-host" onclick="requestRestart()">Play Again</button>
+    </div>
+
+    <div id="lose-screen" class="modal">
+        <h2 style="color: #e74c3c;">Bobcat Wins! 🐾</h2>
+        <p>The bunny was caught...</p>
+        <button class="role-btn btn-host" onclick="requestRestart()">Play Again</button>
+    </div>
+
+    <script>
+        // --- WebRTC / PeerJS State ---
+        let peer = null;
+        let conn = null;
+        let myId = null;
+        let myRole = null;
+
+        // --- Game Constants & State ---
+        const WORLD_RADIUS = 120;
+        const CARROT_COUNT = 10;
+
+        // Physics Constants
+        const ACCELERATION = 2.0;
+        const FRICTION = 0.90;
+        const MAX_SPEED = 0.8;
+        const SPRINT_MULTIPLIER = 1.6;
+        const TURN_SPEED = 0.1;
+        const REBOUND = 0.5; // Bounciness off walls
+
+        // Stamina
+        const MAX_STAMINA = 100;
+        const SPRINT_COST = 0.8;
+        const STAMINA_REGEN = 0.4;
+
+        let scene, camera, renderer, clock;
+        let bunny, bobcat;
+        let carrots = [];
+        let scenery = []; // Trees, rocks
+        let particles = [];
+        let collectedIndices = new Set();
+        let isGameActive = false;
+
+        // Local Physics State
+        let myVelocity = null;
+        let myStamina = MAX_STAMINA;
+        let isSprinting = false;
+
+        // Remote Interpolation
+        let targetBunnyPos = { x: 20, z: 0, r: 0, v: { x: 0, z: 0 } };
+        let targetBobcatPos = { x: -20, z: 0, r: Math.PI, v: { x: 0, z: 0 } };
+
+        // Inputs
+        const keys = { w: false, s: false, a: false, d: false, shift: false };
+        const joystick = { x: 0, y: 0 };
+
+        let isThreeLoaded = false;
+        let isPeerLoaded = false;
+
+        // --- Loader Check ---
+        function checkReady() {
+            if (isThreeLoaded && isPeerLoaded) {
+                document.getElementById('status-msg').innerText = "Ready to play!";
+                document.getElementById('status-msg').style.color = "#2ecc71";
+                document.getElementById('btn-host').classList.remove('btn-disabled');
+                document.getElementById('btn-join').classList.remove('btn-disabled');
+
+                // Detect mobile
+                if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                    document.getElementById('mobile-controls').style.display = 'block';
+                    document.getElementById('sprint-btn').style.display = 'flex';
+                    document.getElementById('controls-hint').style.display = 'none';
+                    setupJoystick();
+                    setupTouchSprint();
+                }
+            }
+        }
+
+        // --- Network Logic ---
+        function generateId() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let result = '';
+            for (let i = 0; i < 4; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        window.hostGame = () => {
+            myRole = 'bunny';
+            const shortId = generateId();
+            myId = "BUNNY_GAME_" + shortId;
+
+            document.getElementById('setup-phase').style.display = 'none';
+            document.getElementById('waiting-phase').style.display = 'block';
+            document.getElementById('host-id-display').style.display = 'block';
+            document.getElementById('host-id-display').innerText = shortId;
+            document.getElementById('status-msg').innerText = "Registering with network...";
+
+            // Use Mozilla STUN server
+            peer = new Peer(myId, {
+                debug: 2,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.services.mozilla.com' }
+                    ]
+                }
+            });
+
+            peer.on('open', (id) => {
+                document.getElementById('status-msg').innerText = "Waiting for Player 2...";
+            });
+
+            peer.on('connection', (connection) => {
+                conn = connection;
+                setupConnection("Player 2 Joined!");
+                setTimeout(sendCarrotData, 1000);
+            });
+
+            peer.on('error', (err) => {
+                console.error(err);
+                alert("Network Error: " + err.type);
+            });
+        };
+
+        window.joinGame = () => {
+            const code = document.getElementById('join-code').value.toUpperCase().trim();
+            if (code.length !== 4) return alert("Please enter the 4-character code.");
+
+            myRole = 'bobcat';
+            document.getElementById('status-msg').innerText = "Connecting...";
+            document.getElementById('btn-join').classList.add('btn-disabled');
+            document.getElementById('btn-host').classList.add('btn-disabled');
+
+            peer = new Peer(null, {
+                debug: 2,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.services.mozilla.com' }
+                    ]
+                }
+            });
+
+            peer.on('open', (id) => {
+                const hostId = "BUNNY_GAME_" + code;
+                conn = peer.connect(hostId, { reliable: true });
+                setupConnection("Connecting...");
+            });
+
+            peer.on('error', (err) => {
+                console.error(err);
+                alert("Connection failed. Error: " + err.type);
+                location.reload();
+            });
+        };
+
+        window.playSolo = () => {
+            myRole = 'bunny';
+            document.getElementById('lobby-screen').style.display = 'none';
+            document.getElementById('connection-indicator').innerText = "SOLO MODE";
+            document.getElementById('connection-indicator').style.color = "#f1c40f";
+            isGameActive = true;
+            init3D();
+
+            // AI Bobcat (Simple Follow)
+            setInterval(() => {
+                if (isGameActive && bobcat && bunny) {
+                    const dx = bunny.position.x - bobcat.position.x;
+                    const dz = bunny.position.z - bobcat.position.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    if (dist > 1) {
+                        bobcat.position.x += dx * 0.02;
+                        bobcat.position.z += dz * 0.02;
+                        bobcat.lookAt(bunny.position);
+                    }
+                }
+            }, 50);
+        };
+
+        function setupConnection(msg) {
+            conn.on('open', () => {
+                console.log("Connected!");
+                document.getElementById('status-msg').innerText = "Connected! Starting...";
+
+                document.getElementById('lobby-screen').style.opacity = 0;
+                setTimeout(() => {
+                    document.getElementById('lobby-screen').style.display = 'none';
+                }, 500);
+
+                document.getElementById('connection-indicator').innerText = "ONLINE";
+                document.getElementById('connection-indicator').style.color = "#2ecc71";
+
+                isGameActive = true;
+                init3D();
+            });
+
+            conn.on('data', (data) => {
+                handleNetworkMessage(data);
+            });
+
+            conn.on('close', () => {
+                alert("Opponent disconnected!");
+                location.reload();
+            });
+        }
+
+        function sendData(data) {
+            if (conn && conn.open) {
+                conn.send(data);
+            }
+        }
+
+        function handleNetworkMessage(msg) {
+            if (msg.type === 'pos') {
+                if (msg.role === 'bunny') targetBunnyPos = msg.data;
+                if (msg.role === 'bobcat') targetBobcatPos = msg.data;
+            }
+            if (msg.type === 'carrot_init') {
+                spawnCarrots(msg.data);
+            }
+            if (msg.type === 'carrot_collected') {
+                hideCarrot(msg.index);
+            }
+            if (msg.type === 'game_over') {
+                isGameActive = false;
+                if (msg.winner === 'bunny') document.getElementById('win-screen').style.display = 'block';
+                else document.getElementById('lose-screen').style.display = 'block';
+            }
+            if (msg.type === 'game_restart') {
+                resetGameLocally();
+            }
+        }
+
+        // --- Restart Logic ---
+        window.requestRestart = () => {
+            sendData({ type: 'game_restart' });
+            resetGameLocally();
+        }
+
+        function resetGameLocally() {
+            document.getElementById('win-screen').style.display = 'none';
+            document.getElementById('lose-screen').style.display = 'none';
+            document.getElementById('danger-overlay').style.boxShadow = 'none';
+
+            collectedIndices.clear();
+            document.getElementById('score').innerText = `Carrots: 0 / ${CARROT_COUNT}`;
+            myStamina = MAX_STAMINA;
+
+            if (bunny) {
+                bunny.position.set(20, 0, 0);
+                bunny.rotation.set(0, 0, 0);
+            }
+            if (bobcat) {
+                bobcat.position.set(-20, 0, 0);
+                bobcat.rotation.set(0, Math.PI, 0);
+            }
+            if (myVelocity) myVelocity.set(0, 0, 0);
+
+            if (myRole === 'bunny') {
+                const carrotData = generateCarrotPositions();
+                spawnCarrots(carrotData);
+                sendCarrotData();
+            } else {
+                carrots.forEach(c => c.mesh.visible = false);
+            }
+
+            isGameActive = true;
+        }
+
+        // --- Controls ---
+        function setupJoystick() {
+            const base = document.getElementById('joystick-base');
+            const knob = document.getElementById('joystick-knob');
+            let centerX, centerY;
+            const maxRadius = 40;
+
+            base.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const rect = base.getBoundingClientRect();
+                centerX = rect.left + rect.width / 2;
+                centerY = rect.top + rect.height / 2;
+            });
+
+            base.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - centerX;
+                const deltaY = touch.clientY - centerY;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                const factor = distance > maxRadius ? maxRadius / distance : 1;
+                const moveX = deltaX * factor;
+                const moveY = deltaY * factor;
+
+                knob.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
+                joystick.x = moveX / maxRadius;
+                joystick.y = moveY / maxRadius;
+            });
+
+            base.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                knob.style.transform = `translate(-50%, -50%)`;
+                joystick.x = 0;
+                joystick.y = 0;
+            });
+        }
+
+        function setupTouchSprint() {
+            const btn = document.getElementById('sprint-btn');
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.shift = true; btn.style.background = "rgba(255,255,255,0.5)"; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys.shift = false; btn.style.background = "rgba(255,255,255,0.2)"; });
+        }
+
+        // --- 3D Engine ---
+
+        function init3D() {
+            if (typeof THREE === 'undefined') return;
+
+            document.getElementById('player-role-display').innerText = myRole.toUpperCase();
+            document.getElementById('player-role-display').style.color = myRole === 'bunny' ? '#FFA500' : '#A0522D';
+
+            myVelocity = new THREE.Vector3(0, 0, 0);
+
+            clock = new THREE.Clock();
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 30, 150);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 25, 30);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            // Lighting
+            const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+            scene.add(hemi);
+
+            const dir = new THREE.DirectionalLight(0xfffaed, 1.2);
+            dir.position.set(50, 100, 50);
+            dir.castShadow = true;
+            dir.shadow.mapSize.width = 2048;
+            dir.shadow.mapSize.height = 2048;
+            dir.shadow.camera.left = -150; dir.shadow.camera.right = 150;
+            dir.shadow.camera.top = 150; dir.shadow.camera.bottom = -150;
+            scene.add(dir);
+
+            // Environment
+            createGround();
+            createEnvironment();
+
+            // Players
+            bunny = createAnimal('bunny');
+            bunny.position.set(20, 0, 0);
+            scene.add(bunny);
+
+            bobcat = createAnimal('bobcat');
+            bobcat.position.set(-20, 0, 0);
+            bobcat.rotation.y = Math.PI;
+            scene.add(bobcat);
+
+            if (myRole === 'bunny') {
+                const carrotData = generateCarrotPositions();
+                spawnCarrots(carrotData);
+            }
+
+            // Events
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            document.addEventListener('keydown', (e) => handleKey(e, true));
+            document.addEventListener('keyup', (e) => handleKey(e, false));
+
+            animate();
+        }
+
+        function createGround() {
+            // Main Ground
+            const geo = new THREE.CircleGeometry(WORLD_RADIUS, 128);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0x5fa052,
+                roughness: 1,
+                flatShading: true
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.rotation.x = -Math.PI / 2;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+
+            // Infinite plane below
+            const pGeo = new THREE.PlaneGeometry(2000, 2000);
+            const pMat = new THREE.MeshBasicMaterial({ color: 0x4a8c40 });
+            const pMesh = new THREE.Mesh(pGeo, pMat);
+            pMesh.rotation.x = -Math.PI / 2;
+            pMesh.position.y = -0.1;
+            scene.add(pMesh);
+
+            // Grass Blades (Instanced)
+            const grassGeo = new THREE.ConeGeometry(0.15, 0.8, 3);
+            grassGeo.translate(0, 0.4, 0);
+            const grassMat = new THREE.MeshLambertMaterial({ color: 0x7cbd6b });
+            const count = 3000;
+            const meshInst = new THREE.InstancedMesh(grassGeo, grassMat, count);
+
+            const dummy = new THREE.Object3D();
+            for (let i = 0; i < count; i++) {
+                const r = Math.random() * WORLD_RADIUS * 0.95;
+                const theta = Math.random() * Math.PI * 2;
+                dummy.position.set(Math.cos(theta) * r, 0, Math.sin(theta) * r);
+                dummy.rotation.y = Math.random() * Math.PI;
+                dummy.scale.setScalar(0.8 + Math.random() * 0.5);
+                dummy.updateMatrix();
+                meshInst.setMatrixAt(i, dummy.matrix);
+            }
+            meshInst.receiveShadow = true;
+            scene.add(meshInst);
+        }
+
+        function createAnimal(type) {
+            const group = new THREE.Group();
+            group.userData = { radius: type === 'bunny' ? 1.5 : 2.0 };
+
+            const color = type === 'bunny' ? 0xffffff : 0x8d6e63;
+            const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.8 });
+
+            const visuals = new THREE.Group();
+            group.add(visuals);
+            group.userData.visuals = visuals;
+
+            if (type === 'bunny') {
+                // Body
+                const body = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), mat);
+                body.position.y = 0.9; body.scale.set(1, 0.9, 1.3); body.castShadow = true;
+                visuals.add(body);
+                // Head
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.75, 16, 16), mat);
+                head.position.set(0, 1.8, 0.9); head.castShadow = true;
+                visuals.add(head);
+                // Ears
+                const ears = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 1.2, 4, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+                const innerEar = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 1.0, 4, 8), new THREE.MeshStandardMaterial({ color: 0xffb7b2 }));
+                innerEar.position.z = 0.05;
+
+                const e1 = new THREE.Group(); e1.add(ears.clone()); e1.add(innerEar.clone());
+                e1.position.set(-0.35, 2.6, 0.7); e1.rotation.set(-0.3, 0, -0.3);
+
+                const e2 = new THREE.Group(); e2.add(ears.clone()); e2.add(innerEar.clone());
+                e2.position.set(0.35, 2.6, 0.7); e2.rotation.set(-0.3, 0, 0.3);
+
+                visuals.add(e1); visuals.add(e2);
+
+                // Tail
+                const tail = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), mat);
+                tail.position.set(0, 0.8, -1.2);
+                visuals.add(tail);
+
+            } else {
+                // Bobcat
+                const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 2.4), mat);
+                body.position.y = 1.2; body.castShadow = true;
+                visuals.add(body);
+
+                const head = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.4), mat);
+                head.position.set(0, 2.2, 1.4); head.castShadow = true;
+                visuals.add(head);
+
+                // Ears
+                const eGeo = new THREE.ConeGeometry(0.2, 0.6, 4);
+                const e1 = new THREE.Mesh(eGeo, mat); e1.position.set(-0.4, 3.0, 1.4); e1.rotation.set(0, 0, -0.2);
+                const e2 = new THREE.Mesh(eGeo, mat); e2.position.set(0.4, 3.0, 1.4); e2.rotation.set(0, 0, 0.2);
+                visuals.add(e1); visuals.add(e2);
+
+                // Tail
+                const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 1.5), mat);
+                tail.position.set(0, 1.5, -1.2); tail.rotation.x = -Math.PI / 4;
+                visuals.add(tail);
+            }
+            return group;
+        }
+
+        function createEnvironment() {
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037 });
+            const leafMat = new THREE.MeshLambertMaterial({ color: 0x388e3c });
+
+            for (let i = 0; i < 40; i++) {
+                const grp = new THREE.Group();
+
+                // Tree Trunk
+                const t = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 2.5, 7), trunkMat);
+                t.position.y = 1.25; t.castShadow = true;
+                grp.add(t);
+
+                // Tree Leaves (Stacked Cones)
+                const l1 = new THREE.Mesh(new THREE.ConeGeometry(2.2, 2.5, 7), leafMat);
+                l1.position.y = 3; l1.castShadow = true;
+                const l2 = new THREE.Mesh(new THREE.ConeGeometry(1.8, 2.5, 7), leafMat);
+                l2.position.y = 4.5; l2.castShadow = true;
+
+                grp.add(l1); grp.add(l2);
+
+                // Position
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 25 + Math.random() * (WORLD_RADIUS - 30);
+                grp.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
+
+                // Random Scale
+                const s = 0.8 + Math.random() * 0.6;
+                grp.scale.set(s, s, s);
+
+                scene.add(grp);
+                grp.userData = { radius: 1.2 * s };
+                scenery.push(grp);
+            }
+        }
+
+        function generateCarrotPositions() {
+            const posData = [];
+            for (let i = 0; i < CARROT_COUNT; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 15 + Math.random() * (WORLD_RADIUS - 25);
+                posData.push({ x: Math.cos(angle) * dist, z: Math.sin(angle) * dist });
+            }
+            return posData;
+        }
+
+        function sendCarrotData() {
+            if (!carrots.length) return;
+            const data = carrots.map(c => ({ x: c.mesh.position.x, z: c.mesh.position.z }));
+            sendData({ type: 'carrot_init', data: data });
+        }
+
+        function spawnCarrots(posArray) {
+            carrots.forEach(c => scene.remove(c.mesh));
+            carrots = [];
+
+            const mat = new THREE.MeshStandardMaterial({ color: 0xff8c00, emissive: 0xff4500, emissiveIntensity: 0.2 });
+            const topMat = new THREE.MeshStandardMaterial({ color: 0x00aa00 });
+
+            posArray.forEach((pos, i) => {
+                const grp = new THREE.Group();
+
+                const body = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.4, 8), mat);
+                body.rotation.x = Math.PI; body.position.y = 0.7; body.castShadow = true;
+
+                const top = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.6), topMat);
+                top.position.y = 1.5;
+                const leaf1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.1), topMat);
+                leaf1.position.y = 1.6; leaf1.rotation.y = 0.5;
+                const leaf2 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.1), topMat);
+                leaf2.position.y = 1.6; leaf2.rotation.y = -0.5;
+
+                grp.add(body); grp.add(top); grp.add(leaf1); grp.add(leaf2);
+
+                grp.position.set(pos.x, 0.5, pos.z);
+
+                // Float animation offset
+                grp.userData = { offset: Math.random() * 100 };
+
+                scene.add(grp);
+                carrots.push({ mesh: grp, index: i });
+            });
+        }
+
+        function hideCarrot(index) {
+            if (carrots[index] && !collectedIndices.has(index)) {
+                collectedIndices.add(index);
+                carrots[index].mesh.visible = false;
+                spawnParticles(carrots[index].mesh.position, 0xff8c00);
+                document.getElementById('score').innerText = `Carrots: ${collectedIndices.size} / ${CARROT_COUNT}`;
+            }
+        }
+
+        function spawnParticles(pos, color) {
+            const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+            const mat = new THREE.MeshBasicMaterial({ color: color });
+            for (let i = 0; i < 8; i++) {
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.copy(pos);
+                mesh.position.y += 0.5;
+                mesh.userData = {
+                    vel: new THREE.Vector3((Math.random() - 0.5) * 0.5, Math.random() * 0.5, (Math.random() - 0.5) * 0.5),
+                    life: 1.0
+                };
+                scene.add(mesh);
+                particles.push(mesh);
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.position.add(p.userData.vel);
+                p.rotation.x += 0.1;
+                p.userData.life -= 0.02;
+                p.scale.setScalar(p.userData.life);
+                if (p.userData.life <= 0) {
+                    scene.remove(p);
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function handleKey(e, isDown) {
+            const k = e.key.toLowerCase();
+            if (k === 'w' || k === 'arrowup') keys.w = isDown;
+            if (k === 's' || k === 'arrowdown') keys.s = isDown;
+            if (k === 'a' || k === 'arrowleft') keys.a = isDown;
+            if (k === 'd' || k === 'arrowright') keys.d = isDown;
+            if (k === 'shift') keys.shift = isDown;
+        }
+
+        function updatePhysics(obj, dt) {
+            // Input Vector
+            let inputX = 0;
+            let inputZ = 0;
+
+            if (keys.w) inputZ -= 1;
+            if (keys.s) inputZ += 1;
+            if (joystick.y !== 0) inputZ += joystick.y;
+
+            if (keys.a) inputX -= 1;
+            if (keys.d) inputX += 1;
+            if (joystick.x !== 0) inputX += joystick.x;
+
+            // Normalize input
+            const len = Math.sqrt(inputX * inputX + inputZ * inputZ);
+            if (len > 1) {
+                inputX /= len;
+                inputZ /= len;
+            }
+
+            // Sprint Logic
+            isSprinting = (keys.shift && len > 0.1 && myStamina > 0);
+            if (isSprinting) {
+                myStamina = Math.max(0, myStamina - SPRINT_COST);
+            } else {
+                myStamina = Math.min(MAX_STAMINA, myStamina + STAMINA_REGEN);
+            }
+
+            // Update UI
+            const bar = document.getElementById('stamina-bar');
+            bar.style.transform = `scaleX(${myStamina / MAX_STAMINA})`;
+            if (myStamina < 20) bar.style.background = '#e74c3c';
+            else bar.style.background = 'linear-gradient(90deg, #f1c40f, #e67e22)';
+
+            // Calculate Target Speed
+            let speedLimit = MAX_SPEED;
+            if (isSprinting) speedLimit *= SPRINT_MULTIPLIER;
+            if (myRole === 'bobcat') speedLimit *= 1.05; // Bobcat slightly faster base
+
+            // Acceleration
+            if (len > 0.1) {
+                // Rotate input to match camera (camera is fixed relative to world mostly, but let's keep it simple: world space controls)
+                // Actually, let's make controls relative to camera view? 
+                // Current camera is fixed offset. Let's stick to World Space controls for simplicity, 
+                // but maybe rotate inputs based on camera angle if we had a rotating camera.
+                // For now: Up is -Z, Down is +Z.
+
+                myVelocity.x += inputX * ACCELERATION * dt;
+                myVelocity.z += inputZ * ACCELERATION * dt;
+            }
+
+            // Friction
+            myVelocity.x *= FRICTION;
+            myVelocity.z *= FRICTION;
+
+            // Cap Speed
+            const currentSpeed = myVelocity.length();
+            if (currentSpeed > speedLimit) {
+                myVelocity.multiplyScalar(speedLimit / currentSpeed);
+            }
+
+            // Apply Movement
+            const nextPos = obj.position.clone().add(myVelocity);
+
+            // World Boundary Collision
+            const distFromCenter = Math.sqrt(nextPos.x * nextPos.x + nextPos.z * nextPos.z);
+            if (distFromCenter > WORLD_RADIUS) {
+                // Bounce back
+                const angle = Math.atan2(nextPos.z, nextPos.x);
+                const normalX = -Math.cos(angle);
+                const normalZ = -Math.sin(angle);
+
+                myVelocity.x += normalX * REBOUND;
+                myVelocity.z += normalZ * REBOUND;
+
+                // Clamp position
+                obj.position.x = Math.cos(angle) * WORLD_RADIUS;
+                obj.position.z = Math.sin(angle) * WORLD_RADIUS;
+            } else {
+                obj.position.copy(nextPos);
+            }
+
+            // Scenery Collision
+            for (let s of scenery) {
+                const dx = obj.position.x - s.position.x;
+                const dz = obj.position.z - s.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                const minDist = obj.userData.radius + s.userData.radius;
+
+                if (dist < minDist) {
+                    // Push out
+                    const pushFactor = (minDist - dist) / dist;
+                    const pushX = dx * pushFactor;
+                    const pushZ = dz * pushFactor;
+
+                    obj.position.x += pushX;
+                    obj.position.z += pushZ;
+
+                    // Kill velocity in that direction
+                    myVelocity.multiplyScalar(0.5);
+                }
+            }
+
+            // Rotation (Face movement direction)
+            if (currentSpeed > 0.05) {
+                const targetRotation = Math.atan2(myVelocity.x, myVelocity.z);
+                let rotDiff = targetRotation - obj.rotation.y;
+
+                // Normalize angle to -PI to PI
+                while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
+                while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
+
+                obj.rotation.y += rotDiff * TURN_SPEED;
+            }
+
+            animateObject(obj, currentSpeed);
+        }
+
+        function animateObject(obj, speed) {
+            const visuals = obj.userData.visuals;
+            // Bounce
+            if (speed > 0.05) {
+                const freq = isSprinting ? 20 : 12;
+                const bounce = Math.abs(Math.sin(Date.now() / 1000 * freq)) * 0.2;
+                visuals.position.y = bounce;
+                // Tilt forward
+                visuals.rotation.x = speed * 0.2;
+            } else {
+                visuals.position.y = THREE.MathUtils.lerp(visuals.position.y, 0, 0.1);
+                visuals.rotation.x = THREE.MathUtils.lerp(visuals.rotation.x, 0, 0.1);
+            }
+        }
+
+        function checkGameLogic() {
+            if (myRole === 'bunny') {
+                carrots.forEach((c) => {
+                    if (collectedIndices.has(c.index)) return;
+                    // Animate carrot
+                    c.mesh.rotation.y += 0.02;
+                    c.mesh.position.y = 0.5 + Math.sin(Date.now() / 500 + c.mesh.userData.offset) * 0.2;
+
+                    if (bunny.position.distanceTo(c.mesh.position) < 2.5) {
+                        hideCarrot(c.index);
+                        sendData({ type: 'carrot_collected', index: c.index });
+                        if (collectedIndices.size >= CARROT_COUNT) {
+                            endGame('bunny');
+                        }
+                    }
+                });
+            }
+
+            // Danger & Catch Logic
+            const dist = bunny.position.distanceTo(bobcat.position);
+
+            // Visual Danger Indicator
+            let danger = 1 - ((dist - 5) / 40);
+            danger = Math.max(0, Math.min(0.6, danger));
+            document.getElementById('danger-overlay').style.boxShadow = `inset 0 0 ${danger * 150}px ${danger * 80}px rgba(255, 0, 0, ${danger})`;
+
+            if (myRole === 'bobcat' && dist < 2.5) {
+                endGame('bobcat');
+            }
+        }
+
+        function endGame(winner) {
+            isGameActive = false;
+            sendData({ type: 'game_over', winner: winner });
+            if (winner === 'bunny') document.getElementById('win-screen').style.display = 'block';
+            else document.getElementById('lose-screen').style.display = 'block';
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = 1; // Fixed step for simplicity in this loop structure, or use clock.getDelta()
+
+            if (myRole === 'bunny') {
+                updatePhysics(bunny, dt);
+                sendData({
+                    type: 'pos',
+                    role: 'bunny',
+                    data: {
+                        x: bunny.position.x,
+                        z: bunny.position.z,
+                        r: bunny.rotation.y,
+                        v: { x: myVelocity.x, z: myVelocity.z }
+                    }
+                });
+
+                // Interpolate Bobcat
+                bobcat.position.x = THREE.MathUtils.lerp(bobcat.position.x, targetBobcatPos.x, 0.2);
+                bobcat.position.z = THREE.MathUtils.lerp(bobcat.position.z, targetBobcatPos.z, 0.2);
+                bobcat.rotation.y = THREE.MathUtils.lerp(bobcat.rotation.y, targetBobcatPos.r, 0.2);
+                const remoteSpeed = Math.sqrt(targetBobcatPos.v.x ** 2 + targetBobcatPos.v.z ** 2);
+                animateObject(bobcat, remoteSpeed);
+
+            } else {
+                updatePhysics(bobcat, dt);
+                sendData({
+                    type: 'pos',
+                    role: 'bobcat',
+                    data: {
+                        x: bobcat.position.x,
+                        z: bobcat.position.z,
+                        r: bobcat.rotation.y,
+                        v: { x: myVelocity.x, z: myVelocity.z }
+                    }
+                });
+
+                // Interpolate Bunny
+                bunny.position.x = THREE.MathUtils.lerp(bunny.position.x, targetBunnyPos.x, 0.2);
+                bunny.position.z = THREE.MathUtils.lerp(bunny.position.z, targetBunnyPos.z, 0.2);
+                bunny.rotation.y = THREE.MathUtils.lerp(bunny.rotation.y, targetBunnyPos.r, 0.2);
+                const remoteSpeed = Math.sqrt(targetBunnyPos.v.x ** 2 + targetBunnyPos.v.z ** 2);
+                animateObject(bunny, remoteSpeed);
+            }
+
+            if (isGameActive) checkGameLogic();
+            updateParticles();
+
+            // Camera Follow
+            const target = myRole === 'bunny' ? bunny : bobcat;
+            // Smooth camera
+            const idealOffset = new THREE.Vector3(0, 25, 35);
+            // Rotate offset based on player rotation? No, keep fixed angle for easier navigation
+            // But let's make it follow position smoothly
+
+            const currentCamPos = camera.position.clone();
+            const targetCamPos = target.position.clone().add(idealOffset);
+
+            camera.position.lerp(targetCamPos, 0.1);
+            camera.lookAt(target.position.x, 0, target.position.z + 5); // Look slightly ahead
+
+            renderer.render(scene, camera);
+        }
+
+        // --- Loaders ---
+        const loadThree = document.createElement('script');
+        loadThree.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js";
+        loadThree.onload = () => { isThreeLoaded = true; checkReady(); };
+        document.body.appendChild(loadThree);
+
+        const loadPeer = document.createElement('script');
+        loadPeer.src = "https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js";
+        loadPeer.onload = () => { isPeerLoaded = true; checkReady(); };
+        document.body.appendChild(loadPeer);
+
+    </script>
+</body>
+
+</html>

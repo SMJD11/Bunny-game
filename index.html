@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bunny vs Bobcat: Realistic</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <!-- UI Elements -->
+    <div id="lobby-screen">
+        <div class="lobby-card">
+            <h2 style="margin-top:0; color: #333;">🐰 Bunny vs Bobcat 🐱</h2>
+            <p style="color:#666; margin-bottom: 20px;">Realistic Edition</p>
+
+            <div id="setup-phase">
+                <button id="btn-host" class="role-btn btn-host">Host as Bunny</button>
+                <div style="margin: 15px 0; font-weight: bold; color: #aaa;">- OR -</div>
+                <div class="input-group">
+                    <input type="text" id="join-code" placeholder="CODE" maxlength="4">
+                </div>
+                <button id="btn-join" class="role-btn btn-join">Join as Bobcat</button>
+                <button id="btn-solo" class="role-btn btn-host" style="background: #95a5a6; margin-top: 20px;">
+                    Play Solo (Offline)
+                </button>
+            </div>
+
+            <div id="waiting-phase" style="display:none;">
+                <p>Share this code:</p>
+                <div id="host-id-display">...</div>
+                <p class="pulse">Waiting for connection...</p>
+            </div>
+
+            <div id="status-msg">Loading engine...</div>
+        </div>
+    </div>
+
+    <div id="danger-overlay"></div>
+
+    <div id="ui-container">
+        <div>
+            <h1>YOU: <span id="player-role-display">...</span></h1>
+            <div id="score">Carrots: 0 / 10</div>
+            <div id="stamina-container">
+                <div id="stamina-bar"></div>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <h1 id="connection-indicator" style="font-size: 16px; opacity: 0.8;">OFFLINE</h1>
+        </div>
+    </div>
+
+    <div id="mobile-controls">
+        <div id="joystick-base">
+            <div id="joystick-knob"></div>
+        </div>
+    </div>
+    <div id="sprint-btn">SPRINT</div>
+    <div id="controls-hint">WASD to Move • SHIFT to Sprint</div>
+
+    <div id="win-screen" class="modal">
+        <h2 style="color: #2ecc71;">Bunny Wins! 🥕</h2>
+        <button class="role-btn btn-host">Play Again</button>
+    </div>
+
+    <div id="lose-screen" class="modal">
+        <h2 style="color: #e74c3c;">Bobcat Wins! 🐾</h2>
+        <button class="role-btn btn-host">Play Again</button>
+    </div>
+
+    <!-- Libraries -->
+    <!-- PeerJS (Global) -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <!-- Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <!-- Main Game Entry -->
+    <script type="module">
+        import './js/main.js';
+        import './js/ui.js';
+
+        // Wait for Game to be exposed to window
+        window.addEventListener('load', () => {
+            if (window.Game && window.Game.init) {
+                window.Game.init();
+                window.Controls.init();
+                document.getElementById('status-msg').innerText = "Ready!";
+            } else {
+                console.error("Game module failed to load or expose global 'Game' object.");
+            }
+        });
+    </script>
+
+
+</body>
+
+</html>

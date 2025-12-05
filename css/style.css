@@ -1,0 +1,263 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap');
+
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Fredoka', sans-serif;
+    background-color: #1a1a1a; /* Darker background for loading */
+    user-select: none;
+    touch-action: none;
+}
+
+#ui-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    color: white;
+    text-shadow: 2px 2px 0px #000;
+    pointer-events: none;
+    z-index: 10;
+}
+
+h1 {
+    margin: 0;
+    font-size: 24px;
+    letter-spacing: 1px;
+    color: #fff;
+}
+
+#score {
+    font-size: 36px;
+    font-weight: 600;
+    color: #FFA500;
+    margin-top: 5px;
+}
+
+#stamina-container {
+    width: 200px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    margin-top: 10px;
+    overflow: hidden;
+    border: 2px solid white;
+}
+
+#stamina-bar {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #f1c40f, #e67e22);
+    transform-origin: left;
+    transition: transform 0.1s;
+}
+
+/* Lobby */
+#lobby-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #87CEEB 0%, #4facfe 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: opacity 0.5s;
+}
+
+.lobby-card {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 40px;
+    border-radius: 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    max-width: 450px;
+    width: 90%;
+    backdrop-filter: blur(10px);
+}
+
+.input-group {
+    margin: 25px 0;
+}
+
+input {
+    padding: 15px;
+    font-size: 28px;
+    border: 3px solid #eee;
+    border-radius: 15px;
+    width: 180px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: bold;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+input:focus {
+    border-color: #4facfe;
+}
+
+.role-btn {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    margin: 12px 0;
+    font-size: 20px;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    font-weight: bold;
+    font-family: 'Fredoka', sans-serif;
+    transition: transform 0.1s, filter 0.2s;
+    color: white;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
+}
+
+.role-btn:active {
+    transform: scale(0.98);
+}
+
+.btn-host {
+    background: linear-gradient(45deg, #FF9966, #FF5E62);
+    box-shadow: 0 6px 0 #D35400;
+}
+.btn-host:active { box-shadow: 0 2px 0 #D35400; transform: translateY(4px); }
+
+.btn-join {
+    background: linear-gradient(45deg, #4facfe, #00f2fe);
+    box-shadow: 0 6px 0 #2980B9;
+}
+.btn-join:active { box-shadow: 0 2px 0 #2980B9; transform: translateY(4px); }
+
+.btn-disabled {
+    background: #bdc3c7;
+    box-shadow: none;
+    cursor: not-allowed;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+#host-id-display {
+    font-size: 42px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 15px 0;
+    padding: 15px;
+    background: #ecf0f1;
+    border-radius: 15px;
+    letter-spacing: 6px;
+    display: none;
+    border: 2px dashed #bdc3c7;
+}
+
+#status-msg {
+    margin-top: 25px;
+    color: #7f8c8d;
+    font-weight: 600;
+}
+
+.modal {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.98);
+    padding: 50px;
+    border-radius: 30px;
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    pointer-events: auto;
+    z-index: 20;
+    min-width: 300px;
+}
+
+.modal h2 { font-size: 40px; margin: 0 0 10px 0; }
+.modal p { font-size: 20px; color: #555; margin-bottom: 30px; }
+
+#danger-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 0 rgba(255, 0, 0, 0);
+    transition: box-shadow 0.1s;
+    z-index: 5;
+    mix-blend-mode: multiply;
+}
+
+/* Joystick Controls */
+#mobile-controls {
+    display: none;
+    position: absolute;
+    bottom: 40px;
+    left: 40px;
+    width: 140px;
+    height: 140px;
+    z-index: 50;
+}
+
+#joystick-base {
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    position: relative;
+    backdrop-filter: blur(4px);
+}
+
+#joystick-knob {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+#sprint-btn {
+    display: none; /* Mobile only */
+    position: absolute;
+    bottom: 60px;
+    right: 40px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    z-index: 50;
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+#sprint-btn:active { background: rgba(255, 255, 255, 0.4); }
+
+/* Controls Hint */
+#controls-hint {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
+    text-align: center;
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    pointer-events: none;
+}
