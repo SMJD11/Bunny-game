@@ -37,16 +37,22 @@ const Game = {
     init: function () {
         this.clock = new THREE.Clock();
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x87CEEB);
-        this.scene.fog = new THREE.Fog(0x87CEEB, 30, 150);
+        // Scene background and fog are now set by World module
 
-        this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.camera.position.set(0, 25, 30);
+        this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2000);
+        this.camera.position.set(0, 30, 45);
 
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            powerPreference: 'high-performance'
+        });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.1;
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         document.body.appendChild(this.renderer.domElement);
 
         // Post Processing
@@ -80,12 +86,12 @@ const Game = {
     setupPostProcessing: function () {
         const renderScene = new RenderPass(this.scene, this.camera);
 
-        // Bloom - Stronger but smaller radius for "Magic" feel
+        // Softer bloom for realistic sunlit glow
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            1.2, // strength
-            0.3, // radius
-            0.9  // threshold
+            0.8,  // strength - softer for realism
+            0.5,  // radius - wider spread
+            0.85  // threshold - higher for just bright objects
         );
 
         this.composer = new EffectComposer(this.renderer);
@@ -163,65 +169,123 @@ const Game = {
         }
     },
 
+    spawnDustParticle: function (pos) {
+        const geo = new THREE.SphereGeometry(0.15, 4, 4);
+        const mat = new THREE.MeshBasicMaterial({
+            color: 0xc4a672,
+            transparent: true,
+            opacity: 0.6
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(
+            pos.x + (Math.random() - 0.5) * 0.5,
+            0.1 + Math.random() * 0.3,
+            pos.z + (Math.random() - 0.5) * 0.5
+        );
+        mesh.userData = {
+            vel: new THREE.Vector3((Math.random() - 0.5) * 0.1, Math.random() * 0.05, (Math.random() - 0.5) * 0.1),
+            life: 0.8
+        };
+        this.scene.add(mesh);
+        this.particles.push(mesh);
+    },
+
     updatePhysics: function () {
         const obj = this.myRole === 'bunny' ? this.bunny : this.bobcat;
         const input = Controls.getInputVector();
 
         // Sprint
         const isSprinting = (Controls.keys.shift && input.len > 0.1 && this.myStamina > 0);
-        if (isSprinting) this.myStamina = Math.max(0, this.myStamina - 0.8);
-        else this.myStamina = Math.min(100, this.myStamina + 0.4);
+        if (isSprinting) this.myStamina = Math.max(0, this.myStamina - 0.6);
+        else this.myStamina = Math.min(100, this.myStamina + 0.3);
 
         // UI
         const bar = document.getElementById('stamina-bar');
         if (bar) bar.style.transform = `scaleX(${this.myStamina / 100})`;
 
-        // Velocity
-        let speed = 0.8; // Base speed
-        if (isSprinting) speed *= 1.6;
-        if (this.myRole === 'bobcat') speed *= 1.05;
+        // Velocity - improved acceleration
+        let maxSpeed = 1.2; // Increased base speed
+        if (isSprinting) maxSpeed *= 1.8;
+        if (this.myRole === 'bobcat') maxSpeed *= 1.08;
 
+        const accel = 0.15; // Acceleration rate
         if (input.len > 0.1) {
-            this.myVelocity.x += input.x * 2.0; // Acceleration
-            this.myVelocity.z += input.z * 2.0;
+            this.myVelocity.x += input.x * accel;
+            this.myVelocity.z += input.z * accel;
         }
 
-        // Friction
-        this.myVelocity.multiplyScalar(0.9);
+        // Smooth friction
+        this.myVelocity.multiplyScalar(0.92);
 
-        // Cap
-        if (this.myVelocity.length() > speed) {
-            this.myVelocity.setLength(speed);
+        // Cap speed
+        if (this.myVelocity.length() > maxSpeed) {
+            this.myVelocity.setLength(maxSpeed);
         }
 
-        // Move
+        // Calculate next position
         const nextPos = obj.position.clone().add(this.myVelocity);
 
-        // World Bounds
-        if (nextPos.length() > World.radius) {
-            this.myVelocity.multiplyScalar(-0.5); // Bounce
-        } else {
-            obj.position.copy(nextPos);
+        // SOFT WORLD BOUNDARY - gradual slowdown instead of hard bounce
+        const distFromCenter = nextPos.length();
+        const softBoundaryStart = World.radius * 0.85; // Start slowing at 85% of radius
+
+        if (distFromCenter > softBoundaryStart) {
+            // Calculate how far into the soft boundary zone we are (0 to 1)
+            const boundaryDepth = (distFromCenter - softBoundaryStart) / (World.radius - softBoundaryStart);
+            const clampedDepth = Math.min(boundaryDepth, 1);
+
+            // Apply progressive slowdown
+            const slowdownFactor = 1 - (clampedDepth * 0.8);
+            this.myVelocity.multiplyScalar(slowdownFactor);
+
+            // Push back gently toward center if at edge
+            if (distFromCenter > World.radius * 0.95) {
+                const pushBack = nextPos.clone().normalize().multiplyScalar(-0.3);
+                this.myVelocity.add(pushBack);
+            }
         }
 
-        // Scenery Collision
+        // Apply final position
+        obj.position.add(this.myVelocity);
+
+        // Hard clamp to prevent escaping
+        if (obj.position.length() > World.radius) {
+            obj.position.setLength(World.radius * 0.98);
+        }
+
+        // IMPROVED SCENERY COLLISION - proper push-away
         for (let s of World.scenery) {
             const dx = obj.position.x - s.position.x;
             const dz = obj.position.z - s.position.z;
             const dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist < (obj.userData.radius + s.userData.radius)) {
-                this.myVelocity.multiplyScalar(-0.5);
-                obj.position.add(this.myVelocity); // Push back
+            const minDist = (obj.userData.radius || 1.5) + (s.userData.radius || 1);
+
+            if (dist < minDist && dist > 0) {
+                // Push player away from obstacle center
+                const pushStrength = (minDist - dist) * 0.5;
+                const pushDir = new THREE.Vector3(dx, 0, dz).normalize();
+                obj.position.add(pushDir.multiplyScalar(pushStrength));
+
+                // Dampen velocity in collision direction
+                const velDot = this.myVelocity.dot(pushDir.negate());
+                if (velDot > 0) {
+                    this.myVelocity.add(pushDir.multiplyScalar(velDot * 0.5));
+                }
             }
         }
 
-        // Rotation
+        // Rotation - smooth turning
         if (this.myVelocity.length() > 0.05) {
             const targetRot = Math.atan2(this.myVelocity.x, this.myVelocity.z);
             let rotDiff = targetRot - obj.rotation.y;
             while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
             while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
-            obj.rotation.y += rotDiff * 0.1;
+            obj.rotation.y += rotDiff * 0.12;
+        }
+
+        // Spawn dust particles when running fast
+        if (this.myVelocity.length() > 0.5 && Math.random() < 0.3) {
+            this.spawnDustParticle(obj.position);
         }
 
         this.animateObject(obj, this.myVelocity.length());
@@ -314,6 +378,7 @@ const Game = {
     animate: function () {
         requestAnimationFrame(() => this.animate());
 
+        const deltaTime = this.clock.getDelta();
         const time = Date.now() / 1000;
 
         if (this.isGameActive) {
@@ -322,11 +387,17 @@ const Game = {
         }
         this.updateRemote();
 
-        // Animate Grass (Simple Wind)
-        if (World.grassMesh) {
-            // We can't easily animate instanced mesh vertices without a custom shader material on the mesh.
-            // But we can rotate the whole group slightly or just leave it static for performance.
-            // Let's just leave it static to save FPS, the sky and characters are enough movement.
+        // Update world animations (clouds)
+        if (World.update) {
+            World.update(deltaTime);
+        }
+
+        // Animate carrots floating
+        for (const carrot of this.carrots) {
+            if (carrot.mesh.visible) {
+                carrot.mesh.position.y = 0.8 + Math.sin(time * 2 + carrot.mesh.userData.offset) * 0.3;
+                carrot.mesh.rotation.y += 0.02;
+            }
         }
 
         // Particles
@@ -334,20 +405,36 @@ const Game = {
             const p = this.particles[i];
             p.position.add(p.userData.vel);
             p.userData.life -= 0.02;
-            p.scale.setScalar(p.userData.life);
+            p.scale.setScalar(Math.max(0, p.userData.life));
             p.rotation.x += 0.1;
             p.rotation.y += 0.1;
+            if (p.material.opacity !== undefined) {
+                p.material.opacity = p.userData.life;
+            }
             if (p.userData.life <= 0) {
                 this.scene.remove(p);
                 this.particles.splice(i, 1);
             }
         }
 
-        // Camera Smooth Follow
+        // Dynamic Camera Follow - adjusted for larger world
         const target = this.myRole === 'bunny' ? this.bunny : this.bobcat;
-        const idealPos = target.position.clone().add(new THREE.Vector3(0, 20, 30));
-        this.camera.position.lerp(idealPos, 0.08);
-        this.camera.lookAt(target.position.x, 0, target.position.z + 2);
+        if (target) {
+            // Camera position based on player movement
+            const camOffset = new THREE.Vector3(
+                -this.myVelocity.x * 5,
+                25 + Math.abs(this.myVelocity.length()) * 3,
+                40 + Math.abs(this.myVelocity.length()) * 5
+            );
+            const idealPos = target.position.clone().add(camOffset);
+            this.camera.position.lerp(idealPos, 0.06);
+
+            // Look ahead of player
+            const lookTarget = target.position.clone().add(
+                new THREE.Vector3(this.myVelocity.x * 3, 2, this.myVelocity.z * 3)
+            );
+            this.camera.lookAt(lookTarget);
+        }
 
         this.composer.render();
     }

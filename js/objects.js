@@ -1,76 +1,167 @@
 import * as THREE from 'three';
 
-// Objects Module - Stylized Characters
+// Objects Module - Realistic Character Models
 
 export const Objects = {
     createBunny: function () {
         const group = new THREE.Group();
         group.userData = { radius: 1.5 };
 
-        const mat = new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            roughness: 0.7,
+        // Soft, realistic fur materials
+        const furMat = new THREE.MeshStandardMaterial({
+            color: 0xf5f5f5,
+            roughness: 0.9,
             metalness: 0.0
         });
-        const pinkMat = new THREE.MeshStandardMaterial({ color: 0xffb7b2 });
-        const blackMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const creamMat = new THREE.MeshStandardMaterial({
+            color: 0xfff8e1,
+            roughness: 0.85
+        });
+        const pinkMat = new THREE.MeshStandardMaterial({
+            color: 0xffcdd2,
+            roughness: 0.7
+        });
+        const eyeMat = new THREE.MeshStandardMaterial({
+            color: 0x3e2723,
+            roughness: 0.3,
+            metalness: 0.1
+        });
+        const eyeHighlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const noseMat = new THREE.MeshStandardMaterial({ color: 0xf48fb1 });
 
         const visuals = new THREE.Group();
         group.add(visuals);
         group.userData.visuals = visuals;
 
-        // Body (Round)
-        const body = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 16), mat);
-        body.position.y = 0.9;
-        body.scale.set(1, 0.85, 1);
+        // BODY - Realistic rabbit body shape (elongated oval)
+        const bodyGeo = new THREE.SphereGeometry(1, 24, 16);
+        const body = new THREE.Mesh(bodyGeo, furMat);
+        body.position.y = 1.0;
+        body.scale.set(0.8, 0.7, 1.1); // Elongated shape
         body.castShadow = true;
         visuals.add(body);
 
-        // Head (Big)
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.85, 16, 16), mat);
-        head.position.set(0, 1.9, 0.2);
+        // Belly (lighter cream color)
+        const bellyGeo = new THREE.SphereGeometry(0.6, 16, 12);
+        const belly = new THREE.Mesh(bellyGeo, creamMat);
+        belly.position.set(0, 0.85, 0.3);
+        belly.scale.set(0.7, 0.6, 0.5);
+        visuals.add(belly);
+
+        // HEAD - Large and round for realistic rabbit
+        const headGeo = new THREE.SphereGeometry(0.7, 24, 18);
+        const head = new THREE.Mesh(headGeo, furMat);
+        head.position.set(0, 1.9, 0.5);
+        head.scale.set(0.9, 0.85, 0.85);
         head.castShadow = true;
         visuals.add(head);
 
-        // Eyes
-        const eyeGeo = new THREE.SphereGeometry(0.1, 8, 8);
-        const e1 = new THREE.Mesh(eyeGeo, blackMat); e1.position.set(-0.3, 2.1, 0.95);
-        const e2 = new THREE.Mesh(eyeGeo, blackMat); e2.position.set(0.3, 2.1, 0.95);
-        visuals.add(e1); visuals.add(e2);
+        // Cheeks (fluffy)
+        const cheekGeo = new THREE.SphereGeometry(0.25, 12, 8);
+        const cheekL = new THREE.Mesh(cheekGeo, furMat);
+        cheekL.position.set(-0.35, 1.75, 0.75);
+        visuals.add(cheekL);
+        const cheekR = new THREE.Mesh(cheekGeo, furMat);
+        cheekR.position.set(0.35, 1.75, 0.75);
+        visuals.add(cheekR);
 
-        // Nose
-        const nose = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), pinkMat);
-        nose.position.set(0, 1.95, 1.05);
+        // EYES - Large, expressive rabbit eyes
+        const eyeGeo = new THREE.SphereGeometry(0.15, 16, 12);
+        const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeL.position.set(-0.22, 2.0, 0.95);
+        eyeL.scale.set(0.8, 1.0, 0.6);
+        visuals.add(eyeL);
+
+        const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeR.position.set(0.22, 2.0, 0.95);
+        eyeR.scale.set(0.8, 1.0, 0.6);
+        visuals.add(eyeR);
+
+        // Eye highlights (gives life to the eyes)
+        const highlightGeo = new THREE.SphereGeometry(0.04, 8, 6);
+        const highlightL = new THREE.Mesh(highlightGeo, eyeHighlightMat);
+        highlightL.position.set(-0.18, 2.05, 1.05);
+        visuals.add(highlightL);
+        const highlightR = new THREE.Mesh(highlightGeo, eyeHighlightMat);
+        highlightR.position.set(0.26, 2.05, 1.05);
+        visuals.add(highlightR);
+
+        // NOSE - Pink triangle nose
+        const noseGeo = new THREE.SphereGeometry(0.08, 8, 6);
+        const nose = new THREE.Mesh(noseGeo, noseMat);
+        nose.position.set(0, 1.8, 1.1);
+        nose.scale.set(1.2, 0.8, 0.6);
         visuals.add(nose);
 
-        // Ears (Long & Floppy)
-        const earGeo = new THREE.CapsuleGeometry(0.15, 1.0, 4, 8);
-        const createEar = (x, rotZ, rotX) => {
-            const eGroup = new THREE.Group();
-            const outer = new THREE.Mesh(earGeo, mat);
-            outer.position.y = 0.5;
-            eGroup.add(outer);
-            eGroup.position.set(x, 2.6, 0.2);
-            eGroup.rotation.set(rotX, 0, rotZ);
-            eGroup.castShadow = true;
-            return eGroup;
+        // EARS - Long, realistic rabbit ears
+        const createEar = (xPos, rotZ) => {
+            const earGroup = new THREE.Group();
+
+            // Outer ear
+            const outerGeo = new THREE.CapsuleGeometry(0.12, 1.2, 6, 12);
+            const outer = new THREE.Mesh(outerGeo, furMat);
+            outer.position.y = 0.6;
+            outer.castShadow = true;
+            earGroup.add(outer);
+
+            // Inner ear (pink)
+            const innerGeo = new THREE.CapsuleGeometry(0.06, 0.9, 4, 8);
+            const inner = new THREE.Mesh(innerGeo, pinkMat);
+            inner.position.set(0, 0.55, 0.05);
+            earGroup.add(inner);
+
+            earGroup.position.set(xPos, 2.5, 0.3);
+            earGroup.rotation.set(-0.3, 0, rotZ);
+
+            return earGroup;
         };
 
-        visuals.add(createEar(-0.4, -0.4, -0.2));
-        visuals.add(createEar(0.4, 0.4, -0.2));
+        visuals.add(createEar(-0.25, -0.15));
+        visuals.add(createEar(0.25, 0.15));
 
-        // Tail (Fluffy)
-        const tail = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), mat);
-        tail.position.set(0, 0.8, -0.9);
+        // TAIL - Fluffy cotton ball
+        const tailGeo = new THREE.SphereGeometry(0.3, 12, 10);
+        const tail = new THREE.Mesh(tailGeo, furMat);
+        tail.position.set(0, 0.9, -0.9);
+        tail.scale.set(1, 0.9, 0.8);
         visuals.add(tail);
 
-        // Legs (Stubby)
-        const legGeo = new THREE.SphereGeometry(0.25, 8, 8);
-        const l1 = new THREE.Mesh(legGeo, mat); l1.position.set(-0.5, 0.25, 0.5);
-        const l2 = new THREE.Mesh(legGeo, mat); l2.position.set(0.5, 0.25, 0.5);
-        const l3 = new THREE.Mesh(legGeo, mat); l3.position.set(-0.5, 0.25, -0.5);
-        const l4 = new THREE.Mesh(legGeo, mat); l4.position.set(0.5, 0.25, -0.5);
-        visuals.add(l1); visuals.add(l2); visuals.add(l3); visuals.add(l4);
+        // LEGS - Realistic rabbit legs
+        // Front legs (smaller)
+        const frontLegGeo = new THREE.CapsuleGeometry(0.12, 0.4, 4, 8);
+        const frontL = new THREE.Mesh(frontLegGeo, furMat);
+        frontL.position.set(-0.35, 0.35, 0.4);
+        frontL.rotation.x = 0.3;
+        visuals.add(frontL);
+
+        const frontR = new THREE.Mesh(frontLegGeo, furMat);
+        frontR.position.set(0.35, 0.35, 0.4);
+        frontR.rotation.x = 0.3;
+        visuals.add(frontR);
+
+        // Back legs (larger, powerful)
+        const backLegGeo = new THREE.CapsuleGeometry(0.18, 0.5, 4, 8);
+        const backL = new THREE.Mesh(backLegGeo, furMat);
+        backL.position.set(-0.4, 0.4, -0.5);
+        backL.rotation.x = -0.4;
+        visuals.add(backL);
+
+        const backR = new THREE.Mesh(backLegGeo, furMat);
+        backR.position.set(0.4, 0.4, -0.5);
+        backR.rotation.x = -0.4;
+        visuals.add(backR);
+
+        // Feet
+        const footGeo = new THREE.SphereGeometry(0.15, 8, 6);
+        const footL = new THREE.Mesh(footGeo, furMat);
+        footL.position.set(-0.45, 0.15, -0.7);
+        footL.scale.set(0.8, 0.5, 1.3);
+        visuals.add(footL);
+
+        const footR = new THREE.Mesh(footGeo, furMat);
+        footR.position.set(0.45, 0.15, -0.7);
+        footR.scale.set(0.8, 0.5, 1.3);
+        visuals.add(footR);
 
         return group;
     },
@@ -79,59 +170,229 @@ export const Objects = {
         const group = new THREE.Group();
         group.userData = { radius: 2.0 };
 
-        const mat = new THREE.MeshStandardMaterial({
-            color: 0xd35400, // Dark Orange
+        // Realistic bobcat materials
+        const furMat = new THREE.MeshStandardMaterial({
+            color: 0xc4a364, // Tawny tan
+            roughness: 0.85,
+            metalness: 0
+        });
+        const darkSpotMat = new THREE.MeshStandardMaterial({
+            color: 0x5d4037, // Dark brown spots
+            roughness: 0.9
+        });
+        const whiteMat = new THREE.MeshStandardMaterial({
+            color: 0xfafafa,
             roughness: 0.8
         });
-        const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-        const blackMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const blackMat = new THREE.MeshStandardMaterial({
+            color: 0x1a1a1a,
+            roughness: 0.4
+        });
+        const noseMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a });
+        const eyeMat = new THREE.MeshStandardMaterial({
+            color: 0xffc107,
+            roughness: 0.3,
+            emissive: 0x4a3000,
+            emissiveIntensity: 0.2
+        });
 
         const visuals = new THREE.Group();
         group.add(visuals);
         group.userData.visuals = visuals;
 
-        // Body
-        const body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 2.0), mat);
-        body.position.y = 1.0;
+        // BODY - Muscular cat body
+        const bodyGeo = new THREE.CapsuleGeometry(0.7, 1.5, 8, 16);
+        const body = new THREE.Mesh(bodyGeo, furMat);
+        body.position.set(0, 1.1, 0);
+        body.rotation.z = Math.PI / 2;
+        body.scale.set(0.9, 1, 1.1);
         body.castShadow = true;
         visuals.add(body);
 
-        // Head
-        const head = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.1, 1.3), mat);
-        head.position.set(0, 2.0, 1.2);
+        // Belly stripe
+        const bellyGeo = new THREE.CapsuleGeometry(0.35, 1.2, 6, 10);
+        const belly = new THREE.Mesh(bellyGeo, whiteMat);
+        belly.position.set(0, 0.85, 0.1);
+        belly.rotation.z = Math.PI / 2;
+        visuals.add(belly);
+
+        // HEAD - Angular cat face
+        const headGeo = new THREE.SphereGeometry(0.6, 20, 16);
+        const head = new THREE.Mesh(headGeo, furMat);
+        head.position.set(0, 1.8, 1.1);
+        head.scale.set(1, 0.9, 0.95);
         head.castShadow = true;
         visuals.add(head);
 
-        // Muzzle (White)
-        const muzzle = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 0.2), whiteMat);
-        muzzle.position.set(0, 1.8, 1.9);
+        // Muzzle
+        const muzzleGeo = new THREE.SphereGeometry(0.3, 12, 10);
+        const muzzle = new THREE.Mesh(muzzleGeo, whiteMat);
+        muzzle.position.set(0, 1.65, 1.55);
+        muzzle.scale.set(1, 0.7, 0.8);
         visuals.add(muzzle);
 
-        // Eyes (Angry)
-        const eyeGeo = new THREE.BoxGeometry(0.2, 0.1, 0.1);
-        const e1 = new THREE.Mesh(eyeGeo, blackMat); e1.position.set(-0.35, 2.1, 1.86); e1.rotation.z = 0.2;
-        const e2 = new THREE.Mesh(eyeGeo, blackMat); e2.position.set(0.35, 2.1, 1.86); e2.rotation.z = -0.2;
-        visuals.add(e1); visuals.add(e2);
+        // Nose
+        const noseGeo = new THREE.SphereGeometry(0.08, 8, 6);
+        const nose = new THREE.Mesh(noseGeo, noseMat);
+        nose.position.set(0, 1.72, 1.75);
+        nose.scale.set(1.2, 0.8, 0.6);
+        visuals.add(nose);
 
-        // Ears (Pointy with tufts)
-        const eGeo = new THREE.ConeGeometry(0.25, 0.6, 4);
-        const e1m = new THREE.Mesh(eGeo, mat); e1m.position.set(-0.5, 2.8, 1.2); e1m.rotation.set(0, 0, -0.3);
-        const e2m = new THREE.Mesh(eGeo, mat); e2m.position.set(0.5, 2.8, 1.2); e2m.rotation.set(0, 0, 0.3);
-        visuals.add(e1m); visuals.add(e2m);
+        // EYES - Intense predator eyes
+        const eyeGeo = new THREE.SphereGeometry(0.12, 14, 10);
+        const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeL.position.set(-0.22, 1.9, 1.5);
+        eyeL.scale.set(0.9, 1.1, 0.5);
+        visuals.add(eyeL);
 
-        // Tail (Short & Stubby)
-        const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.6), mat);
-        tail.position.set(0, 1.4, -1.0);
-        tail.rotation.x = -Math.PI / 3;
+        const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeR.position.set(0.22, 1.9, 1.5);
+        eyeR.scale.set(0.9, 1.1, 0.5);
+        visuals.add(eyeR);
+
+        // Pupils (vertical slits)
+        const pupilGeo = new THREE.SphereGeometry(0.05, 8, 6);
+        const pupilL = new THREE.Mesh(pupilGeo, blackMat);
+        pupilL.position.set(-0.22, 1.9, 1.6);
+        pupilL.scale.set(0.4, 1.2, 0.3);
+        visuals.add(pupilL);
+
+        const pupilR = new THREE.Mesh(pupilGeo, blackMat);
+        pupilR.position.set(0.22, 1.9, 1.6);
+        pupilR.scale.set(0.4, 1.2, 0.3);
+        visuals.add(pupilR);
+
+        // Eye brows (angry look)
+        const browGeo = new THREE.BoxGeometry(0.15, 0.03, 0.08);
+        const browL = new THREE.Mesh(browGeo, darkSpotMat);
+        browL.position.set(-0.25, 2.02, 1.52);
+        browL.rotation.z = 0.25;
+        visuals.add(browL);
+
+        const browR = new THREE.Mesh(browGeo, darkSpotMat);
+        browR.position.set(0.25, 2.02, 1.52);
+        browR.rotation.z = -0.25;
+        visuals.add(browR);
+
+        // EARS - Pointed with tufts
+        const createEar = (xPos, rotZ) => {
+            const earGroup = new THREE.Group();
+
+            // Main ear
+            const earGeo = new THREE.ConeGeometry(0.18, 0.45, 4);
+            const ear = new THREE.Mesh(earGeo, furMat);
+            ear.position.y = 0.2;
+            earGroup.add(ear);
+
+            // Inner ear
+            const innerGeo = new THREE.ConeGeometry(0.1, 0.3, 4);
+            const inner = new THREE.Mesh(innerGeo, whiteMat);
+            inner.position.set(0, 0.15, 0.03);
+            earGroup.add(inner);
+
+            // Tuft at top
+            const tuftGeo = new THREE.ConeGeometry(0.04, 0.15, 3);
+            const tuft = new THREE.Mesh(tuftGeo, darkSpotMat);
+            tuft.position.y = 0.5;
+            earGroup.add(tuft);
+
+            earGroup.position.set(xPos, 2.25, 0.9);
+            earGroup.rotation.set(-0.2, 0, rotZ);
+
+            return earGroup;
+        };
+
+        visuals.add(createEar(-0.3, -0.2));
+        visuals.add(createEar(0.3, 0.2));
+
+        // Ruff (cheek fur)
+        const ruffGeo = new THREE.SphereGeometry(0.2, 10, 8);
+        const ruffL = new THREE.Mesh(ruffGeo, whiteMat);
+        ruffL.position.set(-0.45, 1.7, 1.2);
+        ruffL.scale.set(0.8, 1.2, 0.6);
+        visuals.add(ruffL);
+
+        const ruffR = new THREE.Mesh(ruffGeo, whiteMat);
+        ruffR.position.set(0.45, 1.7, 1.2);
+        ruffR.scale.set(0.8, 1.2, 0.6);
+        visuals.add(ruffR);
+
+        // TAIL - Short bobcat tail
+        const tailGeo = new THREE.CapsuleGeometry(0.12, 0.3, 4, 8);
+        const tail = new THREE.Mesh(tailGeo, furMat);
+        tail.position.set(0, 1.3, -1.0);
+        tail.rotation.x = -0.5;
         visuals.add(tail);
 
-        // Legs
-        const legGeo = new THREE.BoxGeometry(0.35, 0.8, 0.35);
-        const l1 = new THREE.Mesh(legGeo, mat); l1.position.set(-0.5, 0.4, 0.8);
-        const l2 = new THREE.Mesh(legGeo, mat); l2.position.set(0.5, 0.4, 0.8);
-        const l3 = new THREE.Mesh(legGeo, mat); l3.position.set(-0.5, 0.4, -0.8);
-        const l4 = new THREE.Mesh(legGeo, mat); l4.position.set(0.5, 0.4, -0.8);
-        visuals.add(l1); visuals.add(l2); visuals.add(l3); visuals.add(l4);
+        // Black tail tip
+        const tailTipGeo = new THREE.SphereGeometry(0.1, 8, 6);
+        const tailTip = new THREE.Mesh(tailTipGeo, blackMat);
+        tailTip.position.set(0, 1.45, -1.15);
+        visuals.add(tailTip);
+
+        // LEGS - Powerful cat legs
+        const legGeo = new THREE.CapsuleGeometry(0.15, 0.6, 4, 8);
+
+        // Front legs
+        const frontL = new THREE.Mesh(legGeo, furMat);
+        frontL.position.set(-0.4, 0.45, 0.6);
+        frontL.castShadow = true;
+        visuals.add(frontL);
+
+        const frontR = new THREE.Mesh(legGeo, furMat);
+        frontR.position.set(0.4, 0.45, 0.6);
+        frontR.castShadow = true;
+        visuals.add(frontR);
+
+        // Back legs (more muscular)
+        const backLegGeo = new THREE.CapsuleGeometry(0.18, 0.5, 4, 8);
+        const backL = new THREE.Mesh(backLegGeo, furMat);
+        backL.position.set(-0.45, 0.5, -0.6);
+        backL.rotation.x = -0.2;
+        backL.castShadow = true;
+        visuals.add(backL);
+
+        const backR = new THREE.Mesh(backLegGeo, furMat);
+        backR.position.set(0.45, 0.5, -0.6);
+        backR.rotation.x = -0.2;
+        backR.castShadow = true;
+        visuals.add(backR);
+
+        // Paws
+        const pawGeo = new THREE.SphereGeometry(0.12, 8, 6);
+        const pawFL = new THREE.Mesh(pawGeo, furMat);
+        pawFL.position.set(-0.4, 0.1, 0.65);
+        pawFL.scale.set(1, 0.6, 1.2);
+        visuals.add(pawFL);
+
+        const pawFR = new THREE.Mesh(pawGeo, furMat);
+        pawFR.position.set(0.4, 0.1, 0.65);
+        pawFR.scale.set(1, 0.6, 1.2);
+        visuals.add(pawFR);
+
+        const pawBL = new THREE.Mesh(pawGeo, furMat);
+        pawBL.position.set(-0.45, 0.1, -0.75);
+        pawBL.scale.set(1, 0.6, 1.3);
+        visuals.add(pawBL);
+
+        const pawBR = new THREE.Mesh(pawGeo, furMat);
+        pawBR.position.set(0.45, 0.1, -0.75);
+        pawBR.scale.set(1, 0.6, 1.3);
+        visuals.add(pawBR);
+
+        // Spots on body (simplified)
+        const spotGeo = new THREE.SphereGeometry(0.08, 6, 4);
+        const spotPositions = [
+            [-0.5, 1.2, 0.3], [0.5, 1.3, 0.2], [-0.3, 1.0, -0.3],
+            [0.4, 1.1, -0.4], [-0.6, 0.9, 0], [0.55, 0.95, -0.1]
+        ];
+
+        for (const pos of spotPositions) {
+            const spot = new THREE.Mesh(spotGeo, darkSpotMat);
+            spot.position.set(...pos);
+            spot.scale.set(1, 0.7, 1);
+            visuals.add(spot);
+        }
 
         return group;
     },
@@ -139,27 +400,80 @@ export const Objects = {
     createCarrot: function () {
         const grp = new THREE.Group();
 
-        // Body (Low Poly Cone)
-        const mat = new THREE.MeshStandardMaterial({
-            color: 0xff9800,
-            emissive: 0xff6d00,
-            emissiveIntensity: 0.4,
-            roughness: 0.4,
-            flatShading: true
+        // Glowing carrot body
+        const carrotMat = new THREE.MeshStandardMaterial({
+            color: 0xff7043,
+            emissive: 0xff5722,
+            emissiveIntensity: 0.5,
+            roughness: 0.4
         });
-        const body = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.2, 5), mat);
+
+        const body = new THREE.Mesh(
+            new THREE.ConeGeometry(0.25, 1.0, 8),
+            carrotMat
+        );
         body.rotation.x = Math.PI;
-        body.position.y = 0.6;
+        body.position.y = 0.5;
         body.castShadow = true;
+        grp.add(body);
 
-        // Leaves (Tuft)
-        const topMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, flatShading: true });
-        const top = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.6, 4), topMat);
-        top.position.y = 1.4;
+        // Carrot rings detail
+        const ringMat = new THREE.MeshStandardMaterial({
+            color: 0xff8a65,
+            emissive: 0xff6e40,
+            emissiveIntensity: 0.3
+        });
 
-        grp.add(body); grp.add(top);
+        for (let i = 0; i < 3; i++) {
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(0.15 - i * 0.03, 0.02, 6, 12),
+                ringMat
+            );
+            ring.position.y = 0.3 + i * 0.2;
+            ring.rotation.x = Math.PI / 2;
+            grp.add(ring);
+        }
 
-        // Float animation offset
+        // Leafy top
+        const leafMat = new THREE.MeshStandardMaterial({
+            color: 0x4caf50,
+            emissive: 0x2e7d32,
+            emissiveIntensity: 0.2,
+            roughness: 0.6
+        });
+
+        for (let i = 0; i < 4; i++) {
+            const leaf = new THREE.Mesh(
+                new THREE.ConeGeometry(0.06, 0.5, 4),
+                leafMat
+            );
+            const angle = (i / 4) * Math.PI * 2;
+            leaf.position.set(
+                Math.cos(angle) * 0.08,
+                1.2,
+                Math.sin(angle) * 0.08
+            );
+            leaf.rotation.set(
+                (Math.random() - 0.5) * 0.3,
+                angle,
+                (Math.random() - 0.5) * 0.3
+            );
+            grp.add(leaf);
+        }
+
+        // Glow effect (outer sphere)
+        const glowMat = new THREE.MeshBasicMaterial({
+            color: 0xff9800,
+            transparent: true,
+            opacity: 0.15
+        });
+        const glow = new THREE.Mesh(
+            new THREE.SphereGeometry(0.6, 12, 8),
+            glowMat
+        );
+        glow.position.y = 0.6;
+        grp.add(glow);
+
         grp.userData = { offset: Math.random() * 100 };
 
         return grp;
