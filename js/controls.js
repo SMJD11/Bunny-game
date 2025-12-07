@@ -20,6 +20,7 @@ export const Controls = {
 
     handleKey: function (e, isDown) {
         const k = e.key.toLowerCase();
+        // console.log(`Key ${isDown ? 'down' : 'up'}: ${k}`); // Debug log
         if (k === 'w' || k === 'arrowup') this.keys.w = isDown;
         if (k === 's' || k === 'arrowdown') this.keys.s = isDown;
         if (k === 'a' || k === 'arrowleft') this.keys.a = isDown;

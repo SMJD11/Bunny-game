@@ -13,16 +13,16 @@ export const World = {
 
     // Enhanced color palette
     colors: {
-        groundBase: 0x4a7c29,
-        groundHighlight: 0x5d9a36,
-        grassLight: 0x7cb342,
-        grassMid: 0x558b2f,
-        grassDark: 0x33691e,
-        skyZenith: 0x1565c0,
-        skyHorizon: 0x87ceeb,
-        sunGlow: 0xfff3e0,
+        groundBase: 0x5d9a36, // More vibrant green
+        groundHighlight: 0x8bc34a,
+        grassLight: 0xaed581,
+        grassMid: 0x7cb342,
+        grassDark: 0x558b2f,
+        skyZenith: 0x1976d2, // Deeper blue
+        skyHorizon: 0x90caf9, // Brighter horizon
+        sunGlow: 0xffcc80,
         cloudWhite: 0xffffff,
-        cloudShadow: 0xe3f2fd
+        cloudShadow: 0xe1f5fe
     },
 
     create: function (scene) {
@@ -435,13 +435,17 @@ export const World = {
     },
 
     createRealisticLighting: function (scene) {
+        // Strong Ambient Light (Crucial for Safari/Mobile visibility)
+        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambient);
+
         // Hemisphere light for ambient environmental lighting
-        const hemi = new THREE.HemisphereLight(0x87ceeb, 0x556b2f, 0.5);
+        const hemi = new THREE.HemisphereLight(0x87ceeb, 0x556b2f, 0.4);
         scene.add(hemi);
 
         // Main sun light - golden hour warmth
-        const sun = new THREE.DirectionalLight(0xffecd2, 1.5);
-        sun.position.set(150, 80, 100);
+        const sun = new THREE.DirectionalLight(0xffe0b2, 1.8); // Brighter sun
+        sun.position.set(150, 100, 100);
         sun.castShadow = true;
 
         // High quality shadows

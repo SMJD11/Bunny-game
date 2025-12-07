@@ -27,8 +27,14 @@ const UI = {
         if (btnJoin) btnJoin.addEventListener('click', () => this.startJoin());
         if (btnSolo) btnSolo.addEventListener('click', () => this.startSolo());
 
-        if (btnRestartWin) btnRestartWin.addEventListener('click', () => location.reload());
-        if (btnRestartLose) btnRestartLose.addEventListener('click', () => location.reload());
+        if (btnRestartWin) btnRestartWin.addEventListener('click', () => {
+            Game.resetGame();
+            Network.send({ type: 'game_restart' });
+        });
+        if (btnRestartLose) btnRestartLose.addEventListener('click', () => {
+            Game.resetGame();
+            Network.send({ type: 'game_restart' });
+        });
     },
 
     startHost: function () {

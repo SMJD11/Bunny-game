@@ -97,6 +97,9 @@ const Game = {
         this.composer = new EffectComposer(this.renderer);
         this.composer.addPass(renderScene);
         this.composer.addPass(bloomPass);
+
+        // Ensure controls are initialized
+        Controls.init();
     },
 
     startGame: function (role) {
@@ -123,7 +126,9 @@ const Game = {
             const z = Math.sin(angle) * dist;
 
             const mesh = Objects.createCarrot();
-            mesh.position.set(x, 0.5, z);
+            // Snap to terrain height + offset
+            const y = World.getTerrainHeight(x, z) + 1.5;
+            mesh.position.set(x, y, z);
             this.scene.add(mesh);
             this.carrots.push({ mesh: mesh, index: i });
             data.push({ x, z });
@@ -138,7 +143,9 @@ const Game = {
 
         data.forEach((pos, i) => {
             const mesh = Objects.createCarrot();
-            mesh.position.set(pos.x, 0.5, pos.z);
+            // Snap to terrain height + offset
+            const y = World.getTerrainHeight(pos.x, pos.z) + 1.5;
+            mesh.position.set(pos.x, y, pos.z);
             this.scene.add(mesh);
             this.carrots.push({ mesh: mesh, index: i });
         });
@@ -208,13 +215,35 @@ const Game = {
         if (isSprinting) maxSpeed *= 1.8;
         if (this.myRole === 'bobcat') maxSpeed *= 1.08;
 
-        const accel = 0.15; // Acceleration rate
-        if (input.len > 0.1) {
-            this.myVelocity.x += input.x * accel;
-            this.myVelocity.z += input.z * accel;
+        // TANK CONTROLS (Steering + Throttle)
+        // input.z is Throttle (Forward/Back)
+        // input.x is Steering (Left/Right)
+
+        const turnSpeed = 0.05;
+        if (input.x !== 0) {
+            obj.rotation.y -= input.x * turnSpeed;
         }
 
-        // Smooth friction
+        // Calculate forward vector based on rotation
+        // Model faces +Z (0,0,1) when rotation is 0? 
+        // Wait, earlier we said "Behind is -Z". So Forward is +Z?
+        // Let's test: If rot=0, and we want to go forward (input.z < 0), we should move +Z?
+        // Standard Three.js: Forward is usually -Z.
+        // Let's assume Forward is -Z relative to the model.
+
+        const forwardDir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), obj.rotation.y);
+
+        // Throttle
+        // input.z is -1 for W (Forward), +1 for S (Back)
+        const throttle = -input.z; // Invert so W is positive throttle
+
+        // Acceleration
+        const accel = 0.15;
+        if (throttle !== 0) {
+            this.myVelocity.add(forwardDir.multiplyScalar(throttle * accel));
+        }
+
+        // Friction
         this.myVelocity.multiplyScalar(0.92);
 
         // Cap speed
@@ -228,6 +257,15 @@ const Game = {
         // SOFT WORLD BOUNDARY - gradual slowdown instead of hard bounce
         const distFromCenter = nextPos.length();
         const softBoundaryStart = World.radius * 0.85; // Start slowing at 85% of radius
+
+        // Debug Physics
+        // if (Math.random() < 0.05) {
+        //     console.log('Pos:', obj.position);
+        //     console.log('Dist:', distFromCenter, 'Radius:', World.radius);
+        //     console.log('SoftStart:', softBoundaryStart);
+        //     console.log('Input:', input);
+        // }
+
 
         if (distFromCenter > softBoundaryStart) {
             // Calculate how far into the soft boundary zone we are (0 to 1)
@@ -245,8 +283,14 @@ const Game = {
             }
         }
 
-        // Apply final position
-        obj.position.add(this.myVelocity);
+        // Apply final position (X/Z)
+        obj.position.x += this.myVelocity.x;
+        obj.position.z += this.myVelocity.z;
+
+        // SNAP TO TERRAIN HEIGHT
+        const terrainHeight = World.getTerrainHeight(obj.position.x, obj.position.z);
+        obj.position.y = terrainHeight;
+
 
         // Hard clamp to prevent escaping
         if (obj.position.length() > World.radius) {
@@ -258,30 +302,26 @@ const Game = {
             const dx = obj.position.x - s.position.x;
             const dz = obj.position.z - s.position.z;
             const dist = Math.sqrt(dx * dx + dz * dz);
-            const minDist = (obj.userData.radius || 1.5) + (s.userData.radius || 1);
 
-            if (dist < minDist && dist > 0) {
+            // Larger collision radius for trees
+            const minDist = (obj.userData.radius || 1.5) + (s.userData.radius || 2.0);
+
+            if (dist < minDist) {
                 // Push player away from obstacle center
-                const pushStrength = (minDist - dist) * 0.5;
+                const pushStrength = (minDist - dist) * 1.0; // Hard push
                 const pushDir = new THREE.Vector3(dx, 0, dz).normalize();
-                obj.position.add(pushDir.multiplyScalar(pushStrength));
 
-                // Dampen velocity in collision direction
-                const velDot = this.myVelocity.dot(pushDir.negate());
-                if (velDot > 0) {
-                    this.myVelocity.add(pushDir.multiplyScalar(velDot * 0.5));
-                }
+                // Apply push
+                obj.position.x += pushDir.x * pushStrength;
+                obj.position.z += pushDir.z * pushStrength;
+
+                // Kill velocity completely (Crash)
+                this.myVelocity.set(0, 0, 0);
             }
         }
 
-        // Rotation - smooth turning
-        if (this.myVelocity.length() > 0.05) {
-            const targetRot = Math.atan2(this.myVelocity.x, this.myVelocity.z);
-            let rotDiff = targetRot - obj.rotation.y;
-            while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
-            while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
-            obj.rotation.y += rotDiff * 0.12;
-        }
+        // Rotation handled by steering above
+
 
         // Spawn dust particles when running fast
         if (this.myVelocity.length() > 0.5 && Math.random() < 0.3) {
@@ -305,52 +345,95 @@ const Game = {
 
     animateObject: function (obj, speed) {
         const visuals = obj.userData.visuals;
+        const legs = obj.userData.legs;
         const time = Date.now() / 1000;
 
-        if (speed > 0.05) {
-            // Hopping Animation
-            const hopFreq = 15;
-            const hopHeight = 0.3;
-            const yOff = Math.abs(Math.sin(time * hopFreq)) * hopHeight;
+        // Base height offset (breathing)
+        let baseY = 0;
 
-            visuals.position.y = yOff;
+        // --- BUNNY HOPPING PHYSICS ---
+        // If this object is a bunny (has no 'legs' array in my new implementation, or check role)
+        // Actually, my new bunny has no 'legs' array in userData.legs (it has static legs in visuals)
+        // Bobcat has 'legs' array.
+        const isBobcat = (legs && legs.length > 0);
 
-            // Tilt forward slightly
-            visuals.rotation.x = THREE.MathUtils.lerp(visuals.rotation.x, speed * 0.15, 0.1);
+        if (!isBobcat && speed > 0.1) {
+            // HOPPING
+            const hopFreq = 12;
+            const hopHeight = 0.8; // Higher hop
 
-            // Wobble
-            visuals.rotation.z = Math.sin(time * hopFreq) * 0.05;
-        } else {
-            // Idle Breathing
-            visuals.position.y = THREE.MathUtils.lerp(visuals.position.y, 0, 0.1);
-            visuals.rotation.x = THREE.MathUtils.lerp(visuals.rotation.x, 0, 0.1);
-            visuals.rotation.z = THREE.MathUtils.lerp(visuals.rotation.z, 0, 0.1);
+            // Sine wave for hop
+            const hopCycle = Math.sin(time * hopFreq);
+            // Only positive part of sine wave (bounce)
+            baseY = Math.abs(hopCycle) * hopHeight;
 
-            visuals.scale.y = 1 + Math.sin(time * 2) * 0.02;
+            // Tilt forward when moving
+            visuals.rotation.x = THREE.MathUtils.lerp(visuals.rotation.x, 0.2, 0.1);
         }
+        else if (isBobcat && speed > 0.1) {
+            // BOBCAT RUNNING
+            const freq = 15;
+            const amp = 0.8;
+
+            if (legs && legs.length === 4) {
+                // Diagonal pairs
+                legs[0].rotation.x = Math.sin(time * freq) * amp;
+                legs[3].rotation.x = Math.sin(time * freq) * amp;
+                legs[1].rotation.x = Math.sin(time * freq + Math.PI) * amp;
+                legs[2].rotation.x = Math.sin(time * freq + Math.PI) * amp;
+            }
+
+            // Bobbing
+            baseY = Math.abs(Math.sin(time * freq)) * 0.15;
+            visuals.rotation.x = THREE.MathUtils.lerp(visuals.rotation.x, 0.1, 0.1);
+        }
+        else {
+            // IDLE
+            if (legs) {
+                legs.forEach(leg => leg.rotation.x = THREE.MathUtils.lerp(leg.rotation.x, 0, 0.1));
+            }
+            baseY = Math.sin(time * 2) * 0.02;
+            visuals.rotation.x = THREE.MathUtils.lerp(visuals.rotation.x, 0, 0.1);
+        }
+
+        // Apply local Y offset to visuals (relative to the terrain-snapped root)
+        visuals.position.y = baseY;
     },
 
     updateRemote: function () {
         // Interpolate Bunny
-        this.bunny.position.x = THREE.MathUtils.lerp(this.bunny.position.x, this.targetBunny.x, 0.2);
-        this.bunny.position.z = THREE.MathUtils.lerp(this.bunny.position.z, this.targetBunny.z, 0.2);
-        this.bunny.rotation.y = THREE.MathUtils.lerp(this.bunny.rotation.y, this.targetBunny.r, 0.2);
-        const bSpeed = Math.sqrt(this.targetBunny.v.x ** 2 + this.targetBunny.v.z ** 2);
-        if (this.myRole !== 'bunny') this.animateObject(this.bunny, bSpeed);
+        if (this.myRole !== 'bunny') {
+            this.bunny.position.x = THREE.MathUtils.lerp(this.bunny.position.x, this.targetBunny.x, 0.2);
+            this.bunny.position.z = THREE.MathUtils.lerp(this.bunny.position.z, this.targetBunny.z, 0.2);
+
+            // Snap to terrain
+            this.bunny.position.y = World.getTerrainHeight(this.bunny.position.x, this.bunny.position.z);
+
+            this.bunny.rotation.y = THREE.MathUtils.lerp(this.bunny.rotation.y, this.targetBunny.r, 0.2);
+            const bSpeed = Math.sqrt(this.targetBunny.v.x ** 2 + this.targetBunny.v.z ** 2);
+            this.animateObject(this.bunny, bSpeed);
+        }
 
         // Interpolate Bobcat
-        this.bobcat.position.x = THREE.MathUtils.lerp(this.bobcat.position.x, this.targetBobcat.x, 0.2);
-        this.bobcat.position.z = THREE.MathUtils.lerp(this.bobcat.position.z, this.targetBobcat.z, 0.2);
-        this.bobcat.rotation.y = THREE.MathUtils.lerp(this.bobcat.rotation.y, this.targetBobcat.r, 0.2);
-        const cSpeed = Math.sqrt(this.targetBobcat.v.x ** 2 + this.targetBobcat.v.z ** 2);
-        if (this.myRole !== 'bobcat') this.animateObject(this.bobcat, cSpeed);
+        if (this.myRole !== 'bobcat') {
+            this.bobcat.position.x = THREE.MathUtils.lerp(this.bobcat.position.x, this.targetBobcat.x, 0.2);
+            this.bobcat.position.z = THREE.MathUtils.lerp(this.bobcat.position.z, this.targetBobcat.z, 0.2);
+
+            // Snap to terrain
+            this.bobcat.position.y = World.getTerrainHeight(this.bobcat.position.x, this.bobcat.position.z);
+
+            this.bobcat.rotation.y = THREE.MathUtils.lerp(this.bobcat.rotation.y, this.targetBobcat.r, 0.2);
+            const cSpeed = Math.sqrt(this.targetBobcat.v.x ** 2 + this.targetBobcat.v.z ** 2);
+            this.animateObject(this.bobcat, cSpeed);
+        }
     },
 
     checkLogic: function () {
         if (this.myRole === 'bunny') {
             this.carrots.forEach(c => {
                 if (this.collectedIndices.has(c.index)) return;
-                if (this.bunny.position.distanceTo(c.mesh.position) < 2.5) {
+                // Increased collection radius
+                if (this.bunny.position.distanceTo(c.mesh.position) < 4.0) {
                     this.hideCarrot(c.index);
                     Network.send({ type: 'carrot_collected', index: c.index });
                     if (this.collectedIndices.size >= 10) this.endGame('bunny');
@@ -363,7 +446,9 @@ const Game = {
         danger = Math.max(0, Math.min(0.6, danger));
         document.getElementById('danger-overlay').style.boxShadow = `inset 0 0 ${danger * 150}px ${danger * 80}px rgba(255, 0, 0, ${danger})`;
 
-        if (this.myRole === 'bobcat' && dist < 2.5) {
+        // ROBUST COLLISION: Host (Bunny) checks, or Bobcat checks.
+        // Let's make it so if ANYONE detects it, it counts.
+        if (dist < 2.0) { // Reduced distance for more precision
             this.endGame('bobcat');
         }
     },
@@ -373,6 +458,32 @@ const Game = {
         Network.send({ type: 'game_over', winner: winner });
         if (winner === 'bunny') document.getElementById('win-screen').style.display = 'block';
         else document.getElementById('lose-screen').style.display = 'block';
+    },
+
+    resetGame: function () {
+        // Reset State
+        this.isGameActive = true;
+        this.myStamina = 100;
+        this.myVelocity.set(0, 0, 0);
+        this.collectedIndices.clear();
+
+        // Reset Positions
+        this.bunny.position.set(20, World.getTerrainHeight(20, 0), 0);
+        this.bunny.rotation.set(0, 0, 0);
+
+        this.bobcat.position.set(-20, World.getTerrainHeight(-20, 0), 0);
+        this.bobcat.rotation.set(0, Math.PI, 0);
+
+        // Reset UI
+        document.getElementById('win-screen').style.display = 'none';
+        document.getElementById('lose-screen').style.display = 'none';
+        document.getElementById('score').innerText = "Carrots: 0 / 10";
+        document.getElementById('danger-overlay').style.boxShadow = "none";
+
+        // Respawn Carrots (Host Only)
+        if (this.myRole === 'bunny') {
+            this.spawnCarrots();
+        }
     },
 
     animate: function () {
@@ -417,22 +528,41 @@ const Game = {
             }
         }
 
-        // Dynamic Camera Follow - adjusted for larger world
+        // Dynamic Camera Follow - CHASE CAMERA
         const target = this.myRole === 'bunny' ? this.bunny : this.bobcat;
         if (target) {
-            // Camera position based on player movement
-            const camOffset = new THREE.Vector3(
-                -this.myVelocity.x * 5,
-                25 + Math.abs(this.myVelocity.length()) * 3,
-                40 + Math.abs(this.myVelocity.length()) * 5
-            );
-            const idealPos = target.position.clone().add(camOffset);
-            this.camera.position.lerp(idealPos, 0.06);
+            // Calculate ideal offset relative to player rotation
+            // We want the camera BEHIND the player.
+            // Player faces -Z (usually) or moves in direction of velocity.
 
-            // Look ahead of player
-            const lookTarget = target.position.clone().add(
-                new THREE.Vector3(this.myVelocity.x * 3, 2, this.myVelocity.z * 3)
+            const dist = 40; // Zoomed out even more
+            const height = 20; // Higher up
+
+            // Calculate offset based on player's Y rotation
+            // If rotation is 0, player faces +Z. Back is -Z.
+            // Actually in Three.js, standard forward is -Z.
+            // Let's use simple trigonometry based on rotation.
+
+            // Model faces +Z when rotation is 0.
+            // So "Behind" is -Z.
+            // We need to invert the offset direction.
+
+            const angle = target.rotation.y;
+            const backX = Math.sin(angle);
+            const backZ = Math.cos(angle);
+
+            // Negate the direction to place camera BEHIND
+            const idealPos = new THREE.Vector3(
+                target.position.x - backX * dist,
+                target.position.y + height,
+                target.position.z - backZ * dist
             );
+
+            // Smoothly move camera
+            this.camera.position.lerp(idealPos, 0.1);
+
+            // Look at player
+            const lookTarget = target.position.clone().add(new THREE.Vector3(0, 2, 0));
             this.camera.lookAt(lookTarget);
         }
 
@@ -453,7 +583,7 @@ Network.onData = (msg) => {
         if (msg.winner === 'bunny') document.getElementById('win-screen').style.display = 'block';
         else document.getElementById('lose-screen').style.display = 'block';
     }
-    if (msg.type === 'game_restart') location.reload();
+    if (msg.type === 'game_restart') Game.resetGame();
 };
 
 // Expose to window for UI
