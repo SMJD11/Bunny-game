@@ -11,8 +11,16 @@ export const Controls = {
         document.addEventListener('keyup', (e) => this.handleKey(e, false));
 
         // Detect mobile
-        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 1024) {
             this.isMobile = true;
+            const mobileControls = document.getElementById('mobile-controls');
+            const sprintBtn = document.getElementById('sprint-btn');
+            const controlsHint = document.getElementById('controls-hint');
+
+            if (mobileControls) mobileControls.style.display = 'block';
+            if (sprintBtn) sprintBtn.style.display = 'flex';
+            if (controlsHint) controlsHint.style.display = 'none';
+
             this.setupJoystick();
             this.setupTouchSprint();
         }

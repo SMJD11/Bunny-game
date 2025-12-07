@@ -421,7 +421,7 @@
                 document.getElementById('btn-join').classList.remove('btn-disabled');
 
                 // Detect mobile
-                if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                if ('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 1024) {
                     document.getElementById('mobile-controls').style.display = 'block';
                     document.getElementById('sprint-btn').style.display = 'flex';
                     document.getElementById('controls-hint').style.display = 'none';
@@ -533,7 +533,7 @@
         };
 
         function setupConnection(msg) {
-            conn.on('open', () => {
+            const onOpen = () => {
                 console.log("Connected!");
                 document.getElementById('status-msg').innerText = "Connected! Starting...";
 
@@ -547,7 +547,13 @@
 
                 isGameActive = true;
                 init3D();
-            });
+            };
+
+            if (conn.open) {
+                onOpen();
+            } else {
+                conn.on('open', onOpen);
+            }
 
             conn.on('data', (data) => {
                 handleNetworkMessage(data);

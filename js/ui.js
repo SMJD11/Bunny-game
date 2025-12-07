@@ -46,6 +46,11 @@ const UI = {
 
         Network.onConnect = () => {
             document.getElementById('lobby-screen').style.display = 'none';
+            const connIndicator = document.getElementById('connection-indicator');
+            if (connIndicator) {
+                connIndicator.innerText = "ONLINE";
+                connIndicator.style.color = "#2ecc71";
+            }
             Game.startGame('bunny');
         };
         Network.connect();
@@ -58,6 +63,11 @@ const UI = {
         Network.init('bobcat');
         Network.onConnect = () => {
             document.getElementById('lobby-screen').style.display = 'none';
+            const connIndicator = document.getElementById('connection-indicator');
+            if (connIndicator) {
+                connIndicator.innerText = "ONLINE";
+                connIndicator.style.color = "#2ecc71";
+            }
             Game.startGame('bobcat');
         };
         Network.connect(code);
@@ -65,6 +75,11 @@ const UI = {
 
     startSolo: function () {
         document.getElementById('lobby-screen').style.display = 'none';
+        const connIndicator = document.getElementById('connection-indicator');
+        if (connIndicator) {
+            connIndicator.innerText = "SOLO MODE";
+            connIndicator.style.color = "#f1c40f";
+        }
         Game.startGame('bunny');
         // AI
         setInterval(() => {
