@@ -374,6 +374,7 @@
         // --- Game Constants & State ---
         const WORLD_RADIUS = 120;
         const CARROT_COUNT = 10;
+        const COW_COUNT = 5;
 
         // Physics Constants
         const ACCELERATION = 2.0;
@@ -391,6 +392,7 @@
         let scene, camera, renderer, clock;
         let bunny, bobcat;
         let carrots = [];
+        let cows = [];
         let scenery = []; // Trees, rocks
         let particles = [];
         let collectedIndices = new Set();
@@ -723,6 +725,9 @@
             bobcat.rotation.y = Math.PI;
             scene.add(bobcat);
 
+            // Cows
+            spawnCows();
+
             if (myRole === 'bunny') {
                 const carrotData = generateCarrotPositions();
                 spawnCarrots(carrotData);
@@ -844,6 +849,74 @@
             return group;
         }
 
+        function createCow() {
+            const group = new THREE.Group();
+            group.userData = { radius: 2.5 };
+
+            const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+            const blackMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+
+            const visuals = new THREE.Group();
+            group.add(visuals);
+            group.userData.visuals = visuals;
+
+            // Body
+            const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.8, 3.2), whiteMat);
+            body.position.y = 1.6;
+            body.castShadow = true;
+            visuals.add(body);
+
+            // Spots (Simple boxes intersecting)
+            const spot1 = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.0, 1.0), blackMat);
+            spot1.position.set(0, 1.8, 0.5);
+            visuals.add(spot1);
+            const spot2 = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.9, 1.5), blackMat);
+            spot2.position.set(0.6, 1.6, -0.8);
+            visuals.add(spot2);
+
+            // Head
+            const head = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.6), whiteMat);
+            head.position.set(0, 2.6, 2.0);
+            head.castShadow = true;
+            visuals.add(head);
+
+            // Horns
+            const hornGeo = new THREE.ConeGeometry(0.1, 0.6, 8);
+            const hornMat = new THREE.MeshStandardMaterial({ color: 0xdddddd });
+            const h1 = new THREE.Mesh(hornGeo, hornMat); h1.position.set(-0.5, 3.4, 2.0); h1.rotation.z = 0.3;
+            const h2 = new THREE.Mesh(hornGeo, hornMat); h2.position.set(0.5, 3.4, 2.0); h2.rotation.z = -0.3;
+            visuals.add(h1); visuals.add(h2);
+
+            // Legs
+            const legGeo = new THREE.BoxGeometry(0.5, 1.6, 0.5);
+            const l1 = new THREE.Mesh(legGeo, whiteMat); l1.position.set(-0.6, 0.8, 1.0);
+            const l2 = new THREE.Mesh(legGeo, whiteMat); l2.position.set(0.6, 0.8, 1.0);
+            const l3 = new THREE.Mesh(legGeo, whiteMat); l3.position.set(-0.6, 0.8, -1.0);
+            const l4 = new THREE.Mesh(legGeo, whiteMat); l4.position.set(0.6, 0.8, -1.0);
+            visuals.add(l1); visuals.add(l2); visuals.add(l3); visuals.add(l4);
+
+            return group;
+        }
+
+        function spawnCows() {
+            for (let i = 0; i < COW_COUNT; i++) {
+                const cow = createCow();
+
+                // Random position away from center
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 30 + Math.random() * (WORLD_RADIUS - 40);
+                cow.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
+                cow.rotation.y = Math.random() * Math.PI * 2;
+
+                cow.userData.velocity = new THREE.Vector3(0, 0, 0);
+                cow.userData.state = 'idle'; // idle, roam
+                cow.userData.timer = 0;
+
+                scene.add(cow);
+                cows.push(cow);
+            }
+        }
+
         function createEnvironment() {
             const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037 });
             const leafMat = new THREE.MeshLambertMaterial({ color: 0x388e3c });
@@ -905,22 +978,23 @@
             posArray.forEach((pos, i) => {
                 const grp = new THREE.Group();
 
-                const body = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.4, 8), mat);
-                body.rotation.x = Math.PI; body.position.y = 0.7; body.castShadow = true;
+                // Bigger carrots
+                const scale = 2.5;
 
-                const top = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.6), topMat);
-                top.position.y = 1.5;
-                const leaf1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.1), topMat);
-                leaf1.position.y = 1.6; leaf1.rotation.y = 0.5;
-                const leaf2 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.1), topMat);
-                leaf2.position.y = 1.6; leaf2.rotation.y = -0.5;
+                const body = new THREE.Mesh(new THREE.ConeGeometry(0.3 * scale, 1.4 * scale, 8), mat);
+                body.rotation.x = Math.PI; body.position.y = 0.7 * scale; body.castShadow = true;
+
+                const top = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * scale, 0.05 * scale, 0.6 * scale), topMat);
+                top.position.y = 1.5 * scale;
+                const leaf1 = new THREE.Mesh(new THREE.BoxGeometry(0.4 * scale, 0.1 * scale, 0.1 * scale), topMat);
+                leaf1.position.y = 1.6 * scale; leaf1.rotation.y = 0.5;
+                const leaf2 = new THREE.Mesh(new THREE.BoxGeometry(0.4 * scale, 0.1 * scale, 0.1 * scale), topMat);
+                leaf2.position.y = 1.6 * scale; leaf2.rotation.y = -0.5;
 
                 grp.add(body); grp.add(top); grp.add(leaf1); grp.add(leaf2);
 
-                grp.position.set(pos.x, 0.5, pos.z);
-
-                // Float animation offset
-                grp.userData = { offset: Math.random() * 100 };
+                // Grounded position (no floating)
+                grp.position.set(pos.x, 0, pos.z);
 
                 scene.add(grp);
                 carrots.push({ mesh: grp, index: i });
@@ -1078,6 +1152,28 @@
                 }
             }
 
+            // Cow Collision (Push player)
+            for (let cow of cows) {
+                const dx = obj.position.x - cow.position.x;
+                const dz = obj.position.z - cow.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                const minDist = obj.userData.radius + cow.userData.radius;
+
+                if (dist < minDist) {
+                    // Push out hard
+                    const pushFactor = (minDist - dist) / dist + 0.5; // Extra push
+                    const pushX = dx * pushFactor;
+                    const pushZ = dz * pushFactor;
+
+                    obj.position.x += pushX;
+                    obj.position.z += pushZ;
+
+                    // Bounce velocity
+                    myVelocity.x += pushX * 0.5;
+                    myVelocity.z += pushZ * 0.5;
+                }
+            }
+
             // Rotation (Face movement direction)
             if (currentSpeed > 0.05) {
                 const targetRotation = Math.atan2(myVelocity.x, myVelocity.z);
@@ -1112,11 +1208,10 @@
             if (myRole === 'bunny') {
                 carrots.forEach((c) => {
                     if (collectedIndices.has(c.index)) return;
-                    // Animate carrot
-                    c.mesh.rotation.y += 0.02;
-                    c.mesh.position.y = 0.5 + Math.sin(Date.now() / 500 + c.mesh.userData.offset) * 0.2;
+                    // No floating animation for carrots anymore
+                    // c.mesh.rotation.y += 0.02; // Optional rotation
 
-                    if (bunny.position.distanceTo(c.mesh.position) < 2.5) {
+                    if (bunny.position.distanceTo(c.mesh.position) < 3.5) { // Increased pickup range for bigger carrots
                         hideCarrot(c.index);
                         sendData({ type: 'carrot_collected', index: c.index });
                         if (collectedIndices.size >= CARROT_COUNT) {
@@ -1146,9 +1241,43 @@
             else document.getElementById('lose-screen').style.display = 'block';
         }
 
+        function updateCows() {
+            cows.forEach(cow => {
+                // State Machine
+                cow.userData.timer--;
+                if (cow.userData.timer <= 0) {
+                    // Pick new state
+                    if (Math.random() < 0.3) {
+                        cow.userData.state = 'idle';
+                        cow.userData.timer = 60 + Math.random() * 100;
+                        cow.userData.velocity.set(0, 0, 0);
+                    } else {
+                        cow.userData.state = 'roam';
+                        cow.userData.timer = 100 + Math.random() * 200;
+                        const angle = Math.random() * Math.PI * 2;
+                        cow.userData.velocity.set(Math.cos(angle) * 0.05, 0, Math.sin(angle) * 0.05);
+                        cow.rotation.y = Math.atan2(cow.userData.velocity.x, cow.userData.velocity.z);
+                    }
+                }
+
+                if (cow.userData.state === 'roam') {
+                    cow.position.add(cow.userData.velocity);
+
+                    // Bounce off walls
+                    const dist = Math.sqrt(cow.position.x * cow.position.x + cow.position.z * cow.position.z);
+                    if (dist > WORLD_RADIUS) {
+                        cow.userData.velocity.multiplyScalar(-1);
+                        cow.rotation.y += Math.PI;
+                    }
+                }
+            });
+        }
+
         function animate() {
             requestAnimationFrame(animate);
             const dt = 1; // Fixed step for simplicity in this loop structure, or use clock.getDelta()
+
+            updateCows();
 
             if (myRole === 'bunny') {
                 updatePhysics(bunny, dt);
